@@ -2,7 +2,6 @@ import 'dotenv/config'
 import express from 'express'
 import axios from 'axios'
 import morgan from 'morgan'
-import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -11,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
 const PORT = Number(process.env.PORT || 3000)
 const CACHE_ROOT = path.join(__dirname, 'cache')
 const CSS_DIR = path.join(CACHE_ROOT, 'css')
@@ -197,67 +195,7 @@ app.get('/health', (req, res) => {
   res.json({ ok: true })
 })
 
-// 上传TXT：multipart/form-data，字段名为 file
-app.post('/api/upload-txt', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: '缺少TXT文件字段: file' })
-    const txt = req.file.buffer.toString('utf8')
-    const urls = parseTxtToUrls(txt)
-    if (urls.length === 0) return res.status(400).json({ error: 'TXT未包含有效URL' })
-    const results = await batchFetch(urls)
-    const mapped = results.map(r => ({
-      url: r.url,
-      saved: r.saved ? getPublicPath(r.url, r.type, r.saved) : '',
-      accessUrl: r.saved ? buildAccessUrl(req, r.url, r.type, r.saved) : '',
-      size: r.size,
-      type: r.type,
-      skipped: r.skipped,
-      error: r.error,
-      filename: r.saved
-    }))
-    res.json({ count: mapped.length, results: mapped })
-  } catch (e) {
-    res.status(500).json({ error: e.message })
-  }
-})
-
-// 直接提交URL或URL列表
-app.post('/api/cache', async (req, res) => {
-  try {
-    const { url, urls } = req.body || {}
-    if (url) {
-      const r = await fetchAndStore(url)
-      const publicPath = r.saved ? getPublicPath(r.url, r.type, r.saved) : ''
-      const accessUrl = r.saved ? buildAccessUrl(req, r.url, r.type, r.saved) : ''
-      return res.json({
-        url: r.url,
-        saved: publicPath,
-        accessUrl,
-        size: r.size,
-        type: r.type,
-        skipped: r.skipped,
-        filename: r.saved
-      })
-    }
-    if (Array.isArray(urls) && urls.length > 0) {
-      const results = await batchFetch(urls)
-      const mapped = results.map(r => ({
-        url: r.url,
-        saved: r.saved ? getPublicPath(r.url, r.type, r.saved) : '',
-        accessUrl: r.saved ? buildAccessUrl(req, r.url, r.type, r.saved) : '',
-        size: r.size,
-        type: r.type,
-        skipped: r.skipped,
-        error: r.error,
-        filename: r.saved
-      }))
-      return res.json({ count: mapped.length, results: mapped })
-    }
-    res.status(400).json({ error: '请提供 url 或 urls' })
-  } catch (e) {
-    res.status(500).json({ error: e.message })
-  }
-})
+// 已移除外部提交接口：/api/upload-txt 与 /api/cache
 
 /**
  * 从项目内置 seed.txt 加载URL并执行批量缓存

@@ -32,26 +32,9 @@
 
 ## 接口说明
 
-- `POST /api/upload-txt`
-  - 上传 TXT（字段名 `file`），每行一个 URL；支持 `#` 注释与空行
-  - 响应项示例：
-    - `{
-        "url": "https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
-        "saved": "/css/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
-        "accessUrl": "https://<你的域名>/css/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
-        "filename": "bootstrap.min.css",
-        "type": "css",
-        "size": 232914,
-        "skipped": false
-      }`
-
-- `POST /api/cache`
-  - 提交单条 `url` 或数组 `urls`
-  - 单条示例：`{"url":"https://.../bootstrap.min.css"}`
-  - 多条示例：`{"urls":["https://.../bootstrap.min.css","https://.../bootstrap.bundle.min.js"]}`
-
 - `GET /api/seed`
   - 从项目内置 `seed.txt` 读取并批量抓取，无需重启
+  - 管理抓取仅通过修改服务器上的 `seed.txt` 实现，服务端不接受外部提交 URL
 
 ## 静态访问
 
@@ -75,7 +58,7 @@
 ## 安全与白名单建议
 
 - 推荐在 CDN/WAF 层配置防盗链白名单（如 `*.aaa.com`、`www.bbb.com`）
-- 如需更强控制可扩展签名 URL 校验（服务端或边缘验证令牌）
+- 管理接口仅保留 `GET /api/seed`，不提供外部 POST；如需更强控制可扩展签名 URL 校验（服务端或边缘验证令牌）
 
 ## 部署建议
 
@@ -99,3 +82,4 @@
 - `.env` 支持（`PORT`），适配多端口部署
 - 接口响应统一返回公共路径 `saved` 与完整 URL `accessUrl`
 - 依赖升级：`express@^5.1.0`、`multer@^2.0.2`、`axios@^1.13.2`、`morgan@^1.10.1`
+ - 移除外部提交接口：`POST /api/upload-txt` 与 `POST /api/cache`，仅支持通过 `seed.txt` 批量抓取
