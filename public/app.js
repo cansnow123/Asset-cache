@@ -153,7 +153,7 @@
       segBtns.forEach(b => b.classList.remove('is-active'))
       btn.classList.add('is-active')
       state.type = btn.dataset.type || ''
-      load()
+      load(true)
     })
   })
   elSearch.addEventListener('input', () => {

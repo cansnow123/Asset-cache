@@ -41,8 +41,16 @@ function ensureCacheDirs() {
  */
 function registerPublicHomepage(app) {
   if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR)
-  app.use(express.static(PUBLIC_DIR, { maxAge: '1h' }))
+  app.use(express.static(PUBLIC_DIR, {
+    maxAge: '1h',
+    setHeaders: (res, filePath) => {
+      if (path.extname(filePath) === '.html') {
+        res.setHeader('Cache-Control', 'no-cache')
+      }
+    }
+  }))
   app.get('/', (req, res) => {
+    res.set('Cache-Control', 'no-cache')
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'))
   })
 }

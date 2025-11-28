@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20251128" />
   </head>
   <body>
     <header class="hero">
@@ -71,34 +71,38 @@
       <section class="cache">
         <div class="cache-header">
           <h2>已缓存资源</h2>
-          <div class="tools">
-            <div class="seg">
-              <button class="seg-btn is-active" data-type="">全部</button>
-              <button class="seg-btn" data-type="css">CSS</button>
-              <button class="seg-btn" data-type="js">JS</button>
+          <div class="toolbar">
+            <div class="toolbar-top">
+              <div class="seg">
+                <button class="seg-btn is-active" data-type="">全部</button>
+                <button class="seg-btn" data-type="css">CSS</button>
+                <button class="seg-btn" data-type="js">JS</button>
+              </div>
+              <select id="timeRange" class="select">
+                <option value="">全部时间</option>
+                <option value="24">最近24小时</option>
+                <option value="168">最近7天</option>
+                <option value="720">最近30天</option>
+              </select>
+              <button id="refresh" class="btn">刷新列表</button>
             </div>
-            <input id="search" class="search" type="text" placeholder="按名称或路径片段搜索..." />
-            <select id="sortBy" class="select">
-              <option value="mtime">按更新时间</option>
-              <option value="name">按名称</option>
-              <option value="size">按大小</option>
-            </select>
-            <select id="order" class="select">
-              <option value="desc">倒序</option>
-              <option value="asc">正序</option>
-            </select>
-            <select id="pageSize" class="select">
-              <option value="20">每页20</option>
-              <option value="30" selected>每页30</option>
-              <option value="50">每页50</option>
-            </select>
-            <select id="timeRange" class="select">
-              <option value="">全部时间</option>
-              <option value="24">最近24小时</option>
-              <option value="168">最近7天</option>
-              <option value="720">最近30天</option>
-            </select>
-            <button id="refresh" class="btn">刷新列表</button>
+            <div class="toolbar-bottom">
+              <input id="search" class="search" type="text" placeholder="按名称或路径片段搜索..." />
+              <select id="sortBy" class="select">
+                <option value="mtime">按更新时间</option>
+                <option value="name">按名称</option>
+                <option value="size">按大小</option>
+              </select>
+              <select id="order" class="select">
+                <option value="desc">倒序</option>
+                <option value="asc">正序</option>
+              </select>
+              <select id="pageSize" class="select">
+                <option value="20">每页20</option>
+                <option value="30" selected>每页30</option>
+                <option value="50">每页50</option>
+              </select>
+            </div>
           </div>
         </div>
         <div id="stats" class="stats">加载中...</div>
@@ -116,15 +120,12 @@
 
     <footer class="footer">
       <div class="container">
-        <span>© 2025 Asset Cache</span>
+        <span>© 2025 Asset Cache & © Photo8 Tools Team</span>
         <nav>
-          <a href="/css" target="_blank">/css</a>
-          <a href="/js" target="_blank">/js</a>
-          <a href="/api/seed" target="_blank">/api/seed</a>
-          <a href="/health" target="_blank">/health</a>
+          <a href="https://ckk.photo8.site/Photo8/Asset-cache" target="_blank">项目地址</a>
         </nav>
       </div>
     </footer>
-    <script src="/app.js"></script>
+    <script src="/app.js?v=20251128"></script>
   </body>
   </html>
