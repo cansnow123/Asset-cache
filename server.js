@@ -15,6 +15,7 @@ const CACHE_ROOT = path.join(__dirname, 'cache')
 const CSS_DIR = path.join(CACHE_ROOT, 'css')
 const JS_DIR = path.join(CACHE_ROOT, 'js')
 const SEED_FILE = path.join(__dirname, 'seed.txt')
+const PUBLIC_DIR = path.join(__dirname, 'public')
 
 // 中间件
 app.use(express.json({ limit: '2mb' }))
@@ -29,6 +30,21 @@ function ensureCacheDirs() {
   if (!fs.existsSync(CACHE_ROOT)) fs.mkdirSync(CACHE_ROOT)
   if (!fs.existsSync(CSS_DIR)) fs.mkdirSync(CSS_DIR)
   if (!fs.existsSync(JS_DIR)) fs.mkdirSync(JS_DIR)
+}
+
+/**
+ * 注册前端首页与公共静态目录
+ * - 将 `public/` 作为静态资源根目录
+ * - 在根路径 `/` 提供首页 `index.html`
+ * @param {import('express').Express} app 实例
+ * @returns {void}
+ */
+function registerPublicHomepage(app) {
+  if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR)
+  app.use(express.static(PUBLIC_DIR, { maxAge: '1h' }))
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'))
+  })
 }
 
 /**
@@ -185,6 +201,7 @@ async function batchFetch(urls) {
 }
 
 ensureCacheDirs()
+registerPublicHomepage(app)
 
 // 静态服务：/css 与 /js 直接映射到缓存目录
 app.use('/css', express.static(CSS_DIR, { maxAge: '365d', immutable: true }))
@@ -230,6 +247,181 @@ app.get('/api/seed', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
+})
+
+/**
+ * 递归遍历目录并返回文件信息列表
+ * @param {string} rootDir 根目录
+ * @returns {{abs:string, rel:string, size:number, mtime:number}[]} 文件信息
+ */
+function walkFiles(rootDir) {
+  /** @type {{abs:string, rel:string, size:number, mtime:number}[]} */
+  const out = []
+  const stack = [rootDir]
+  while (stack.length) {
+    const dir = stack.pop()
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+    for (const e of entries) {
+      const abs = path.join(dir, e.name)
+      if (e.isDirectory()) {
+        stack.push(abs)
+      } else if (e.isFile()) {
+        const stat = fs.statSync(abs)
+        const rel = path.relative(rootDir, abs).replace(/\\/g, '/')
+        out.push({ abs, rel, size: stat.size, mtime: stat.mtimeMs })
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * 从相对路径中提取库元数据（兼容常见CDN目录结构）
+ * 支持模式：
+ * - npm/<name>@<version>/...
+ * - ajax/libs/<name>/<version>/...
+ * - gh/<org>/<repo>@<version>/...
+ * - 任意片段含 <name>@<version>
+ * @param {string} rel 相对路径（以缓存根为基准）
+ * @returns {{name:string, version:string, ext:string, category:string}}
+ */
+function extractMetaFromRel(rel) {
+  const ext = (path.extname(rel) || '').toLowerCase()
+  const parts = rel.split('/').filter(Boolean)
+  let name = ''
+  let version = ''
+
+  const idxNpm = parts.indexOf('npm')
+  if (idxNpm >= 0 && parts[idxNpm + 1]) {
+    const seg = parts[idxNpm + 1]
+    const at = seg.indexOf('@')
+    if (at > 0) {
+      name = seg.slice(0, at)
+      version = seg.slice(at + 1)
+    }
+  }
+
+  if (!name) {
+    const idxAjax = parts.indexOf('ajax')
+    const idxLibs = parts.indexOf('libs')
+    if (idxAjax >= 0 && idxLibs === idxAjax + 1 && parts[idxLibs + 1] && parts[idxLibs + 2]) {
+      name = parts[idxLibs + 1]
+      version = parts[idxLibs + 2]
+    }
+  }
+
+  if (!name) {
+    const idxGh = parts.indexOf('gh')
+    if (idxGh >= 0 && parts[idxGh + 1]) {
+      const seg = parts[idxGh + 1]
+      const at = seg.indexOf('@')
+      if (at > 0) {
+        name = seg.slice(0, at)
+        version = seg.slice(at + 1)
+      }
+    }
+  }
+
+  if (!name) {
+    for (const seg of parts) {
+      const at = seg.indexOf('@')
+      if (at > 0) {
+        name = seg.slice(0, at)
+        version = seg.slice(at + 1)
+        break
+      }
+    }
+  }
+
+  const category = name || (ext === '.css' ? 'css' : 'js')
+  return { name, version, ext, category }
+}
+
+/**
+ * 列出已缓存的 CSS/JS 文件，支持过滤与限制
+ * 查询参数：
+ * - type: 'css'|'js'（可选）
+ * - q: 关键字（可选，匹配路径片段）
+ * - name: 库名称（可选，匹配解析出的名称）
+ * - updatedFrom/updatedTo: 时间戳毫秒（可选）
+ * - sortBy: 'mtime'|'name'|'size'（默认 'mtime'）
+ * - order: 'asc'|'desc'（默认 'desc'）
+ * - page: 页码（默认 1）
+ * - pageSize: 每页条数（默认 30，范围 20–50）
+ * @param {import('express').Request} req 请求
+ * @param {import('express').Response} res 响应
+ * @returns {void}
+ */
+app.get('/api/list-cache', (req, res) => {
+  const type = (req.query.type || '').toString().toLowerCase()
+  const q = (req.query.q || '').toString().trim()
+  const nameQ = (req.query.name || '').toString().trim().toLowerCase()
+  const updatedFrom = Number(req.query.updatedFrom || 0) || undefined
+  const updatedTo = Number(req.query.updatedTo || 0) || undefined
+  const sortBy = ((req.query.sortBy || 'mtime') + '').toLowerCase()
+  const order = ((req.query.order || 'desc') + '').toLowerCase() === 'asc' ? 'asc' : 'desc'
+  const page = Math.max(1, Number(req.query.page || 1))
+  const pageSizeRaw = Number(req.query.pageSize || 30)
+  const pageSize = Math.max(20, Math.min(50, isNaN(pageSizeRaw) ? 30 : pageSizeRaw))
+
+  const host = req.get('host')
+  const proto = req.protocol
+
+  const cssFiles = walkFiles(CSS_DIR).map(f => {
+    const meta = extractMetaFromRel(f.rel)
+    return {
+    type: 'css',
+    path: `/css/${f.rel}`,
+    url: `${proto}://${host}/css/${f.rel}`,
+    size: f.size,
+    mtime: f.mtime,
+    name: meta.name,
+    version: meta.version,
+    ext: meta.ext,
+    category: meta.category
+  }
+  })
+  const jsFiles = walkFiles(JS_DIR).map(f => {
+    const meta = extractMetaFromRel(f.rel)
+    return {
+    type: 'js',
+    path: `/js/${f.rel}`,
+    url: `${proto}://${host}/js/${f.rel}`,
+    size: f.size,
+    mtime: f.mtime,
+    name: meta.name,
+    version: meta.version,
+    ext: meta.ext,
+    category: meta.category
+  }
+  })
+
+  let items = [...cssFiles, ...jsFiles]
+  if (type === 'css' || type === 'js') items = items.filter(i => i.type === type)
+  if (q) items = items.filter(i => i.path.includes(q))
+  if (nameQ) items = items.filter(i => (i.name || '').toLowerCase().includes(nameQ))
+  if (updatedFrom) items = items.filter(i => i.mtime >= updatedFrom)
+  if (updatedTo) items = items.filter(i => i.mtime <= updatedTo)
+
+  const cmp = {
+    mtime: (a, b) => a.mtime - b.mtime,
+    name: (a, b) => (a.name || '').localeCompare(b.name || ''),
+    size: (a, b) => a.size - b.size
+  }[sortBy] || ((a, b) => a.mtime - b.mtime)
+  items.sort((a, b) => (order === 'asc' ? cmp(a, b) : -cmp(a, b)))
+
+  const total = items.length
+  const start = (page - 1) * pageSize
+  const sliced = items.slice(start, start + pageSize)
+
+  res.json({
+    count: sliced.length,
+    total,
+    page,
+    pageSize,
+    hasMore: start + pageSize < total,
+    items: sliced
+  })
 })
 
 app.listen(PORT, () => {

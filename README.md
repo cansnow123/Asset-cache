@@ -19,6 +19,7 @@
 - TXT 解析与批量：`server.js:164`、`server.js:176`
 - 静态目录映射：`server.js:192`–`server.js:193`
 - 公共路径与完整 URL：`server.js:107`（`getPublicPath`）、`server.js:121`（`buildAccessUrl`）
+- 前端首页注册：`server.js:42`（`registerPublicHomepage`）
 
 ## 快速开始
 
@@ -30,11 +31,85 @@
 - 启动服务：`npm start`
 - 健康检查：`GET /health` → `{"ok":true}`
 
+## 前端首页
+
+- 访问路径：`/`
+- 内容包含：项目简介、健康检查入口、触发 Seed 抓取入口、免责声明与推荐公共 CDN 列表、已缓存资源的可视化列表（仅展示可直接复制的完整 URL）
+- 目的：为内部用户提供更直观的访问入口与使用指引
+ - 高级功能：分页加载（20–50/页）、按名称/类型/更新时间过滤、按名称/大小/时间排序、懒加载与轻量虚拟滚动、统一暗色科技风视觉与动画
+
+## 使用声明（免责声明）
+
+- 本网站收录的开源库均仅支持内部使用，不对外提供公共 CDN 服务
+- 如需稳定的外部公共库服务，请使用以下成熟 CDN：
+  - BootCDN 加速服务：`https://www.bootcdn.cn/`
+  - CDNJS 前端公共库：`https://cdnjs.com/`
+  - jsDelivr：`https://www.jsdelivr.com/`
+  - 七牛免费 CDN 前端公开库：`https://www.staticfile.org/`
+  - 又拍云常用 JavaScript 库 CDN 服务：`http://jscdn.upai.com/`
+  - Google Hosted Libraries：`https://developers.google.com/speed/libraries`
+  - Microsoft Ajax CDN：`https://ajax.aspnetcdn.com/`
+
 ## 接口说明
 
 - `GET /api/seed`
   - 从项目内置 `seed.txt` 读取并批量抓取，无需重启
   - 管理抓取仅通过修改服务器上的 `seed.txt` 实现，服务端不接受外部提交 URL
+
+- `GET /api/list-cache`
+  - 列出当前已缓存的 CSS/JS 文件，按最近修改时间倒序
+  - 查询参数：
+    - `type`: `css` | `js`（可选）
+    - `q`: 关键字（可选，匹配路径片段）
+    - `limit`: 最大返回条数（默认 200，最多 2000）
+  - 返回示例：
+    ```json
+    {
+      "count": 200,
+      "total": 1234,
+      "hasMore": true,
+      "items": [
+        { "type": "css", "path": "/css/npm/.../file.css", "url": "http://host/css/npm/.../file.css", "size": 12345, "mtime": 1730000000000 }
+      ]
+    }
+    ```
+
+### 接口更新（list-cache 扩展）
+
+- `GET /api/list-cache`
+  - 支持分页、排序与更丰富的过滤参数：
+    - `type`: `css` | `js`（可选）
+    - `q`: 关键字（匹配路径片段与URL，模糊搜索）
+    - `name`: 库名称（匹配解析出的名称，模糊搜索）
+    - `updatedFrom` / `updatedTo`: 毫秒时间戳范围过滤（可选）
+    - `sortBy`: `mtime` | `name` | `size`（默认 `mtime`）
+    - `order`: `asc` | `desc`（默认 `desc`）
+    - `page`: 页码（默认 1）
+    - `pageSize`: 每页条数（默认 30，范围 20–50）
+  - 返回字段增加：`page`、`pageSize`、`name`、`version`、`ext`、`category`
+  - 示例：
+    ```json
+    {
+      "count": 30,
+      "total": 1234,
+      "page": 1,
+      "pageSize": 30,
+      "hasMore": true,
+      "items": [
+        {
+          "type": "css",
+          "path": "/css/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+          "url": "http://host/css/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+          "size": 12345,
+          "mtime": 1730000000000,
+          "name": "bootstrap",
+          "version": "5.3.0",
+          "ext": ".css",
+          "category": "bootstrap"
+        }
+      ]
+    }
+    ```
 
 ## 静态访问
 
@@ -82,4 +157,8 @@
 - `.env` 支持（`PORT`），适配多端口部署
 - 接口响应统一返回公共路径 `saved` 与完整 URL `accessUrl`
 - 依赖升级：`express@^5.1.0`、`multer@^2.0.2`、`axios@^1.13.2`、`morgan@^1.10.1`
- - 移除外部提交接口：`POST /api/upload-txt` 与 `POST /api/cache`，仅支持通过 `seed.txt` 批量抓取
+- 移除外部提交接口：`POST /api/upload-txt` 与 `POST /api/cache`，仅支持通过 `seed.txt` 批量抓取
+- 新增前端首页与公共静态目录（`public/`），主页包含免责声明及推荐公共 CDN 列表
+- 新增 `GET /api/list-cache` 接口，支持过滤、限制与前端展示一键复制
+- 升级首页缓存区域视觉与交互：统一暗色科技风、移除相对路径展示、仅保留完整 URL 复制与打开、优化响应式布局与过渡动画
+ - 增强缓存管理：分页加载（20–50/页）、按名称/类型/更新时间过滤、按名称/大小/时间排序、轻量虚拟滚动与懒加载、元数据解析（库名/版本/扩展名/类别）
