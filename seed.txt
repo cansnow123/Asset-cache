@@ -4,3 +4,4 @@
 # Bootstrap 5.3.0 样式与脚本
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
+https://cdn.tailwindcss.com

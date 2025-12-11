@@ -133,6 +133,13 @@
 - 类型判定：优先扩展名（`.css`/`.js`），其次 `Content-Type`
 - 安全加固：移除 `..` 等越权片段，写入前校验不越界（`server.js:65` 起）
 
+### 规则补充（无扩展名与根路径资源）
+
+- 无扩展名的资源将根据类型自动补全扩展名：`text/css` → `.css`、`application/text-javascript`/`text/javascript` → `.js`
+- 根路径资源（如 `https://cdn.tailwindcss.com`）为避免跨域冲突，将以主机名作为首层目录：
+  - 本地保存：`cache/js/cdn.tailwindcss.com/index.js`
+  - 对外访问：`/js/cdn.tailwindcss.com/index.js`
+
 ## 去重策略
 
 - 目标路径存在则跳过抓取，响应中返回 `skipped: true`

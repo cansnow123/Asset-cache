@@ -65,7 +65,7 @@ function resolveTargetPath(urlStr, contentType) {
   const u = new URL(urlStr)
   let base = path.basename(u.pathname)
   if (!base || base === '/') base = 'index'
-  const ext = path.extname(base).toLowerCase()
+  let ext = path.extname(base).toLowerCase()
 
   let folder
   let type
@@ -84,6 +84,12 @@ function resolveTargetPath(urlStr, contentType) {
   else if ((contentType || '').split(';')[0].trim() === 'text/css') type = 'css'
   else type = 'js'
 
+  // 无扩展名时根据判定类型补全扩展名，确保同一URL在抓取前后路径一致
+  if (!ext) {
+    if (type === 'css') { base = `${base}.css`; ext = '.css' }
+    else { base = `${base}.js`; ext = '.js' }
+  }
+
   // 按原URL路径的目录层级保存：/npm/bootstrap@5.3.0/dist/css → 子目录
   let subDir = path.dirname(u.pathname)
   if (subDir === '/' || subDir === '.') subDir = ''
@@ -92,7 +98,8 @@ function resolveTargetPath(urlStr, contentType) {
   const safeParts = raw
     .split('/')
     .filter(p => p && p !== '..')
-  const normalized = safeParts.join('/')
+  let normalized = safeParts.join('/')
+  if (!normalized) normalized = u.hostname
   const targetDir = normalized ? path.join(folder, normalized) : folder
 
   let fullPath = path.join(targetDir, base)
@@ -116,7 +123,8 @@ function sanitizeSubdirFromUrl(urlStr) {
   if (subDir === '/' || subDir === '.') subDir = ''
   const raw = subDir.replace(/^\/+/, '').replace(/\\+/g, '/')
   const safeParts = raw.split('/').filter(p => p && p !== '..')
-  return safeParts.join('/')
+  const joined = safeParts.join('/')
+  return joined ? joined : u.hostname
 }
 
 /**
