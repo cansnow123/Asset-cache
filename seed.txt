@@ -7,4 +7,12 @@ https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
 https://cdn.tailwindcss.com
 
 # Element UI 2.15.13 样式（用于验证字体依赖自动抓取）
-https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/theme-chalk/index.css
+https://dist.jicelue.com/css/npm/element-ui@2.15.13/lib/theme-chalk/index.css
+
+# Font Awesome Free 6（验证 webfonts 自动抓取）
+https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css
+https://s4.zstatic.net/ajax/libs/font-awesome/5.15.4/css/all.min.css
+https://s4.zstatic.net/ajax/libs/font-awesome/5.15.4/css/v4-shims.min.css
+https://s4.zstatic.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css
+https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css
+https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css

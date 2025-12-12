@@ -195,17 +195,22 @@ async function fetchCssDependencies(baseUrl, cssBuf) {
   }
 
   for (const rel of refs) {
-    // 归一化相对路径，计算本地写入位置
-    const relSafe = rel.replace(/\\+/g, '/').replace(/^\/+/, '')
-    const relParts = relSafe.split('/').filter(p => p && p !== '..')
-    const localPath = path.join(targetDir, ...relParts)
+    // 归一化相对路径，保留 .. 以正确定位到上级目录；去掉查询与哈希
+    const relNorm = rel.replace(/\\+/g, '/').replace(/^\s+|\s+$/g, '')
+    const noQuery = relNorm.split('#')[0].split('?')[0]
+    const localPathCandidate = path.join(targetDir, noQuery)
+    const localPath = path.normalize(localPathCandidate)
     const localDir = path.dirname(localPath)
+    // 防越权：确保写入路径仍在 CSS_DIR 根内
+    const rootResolved = path.resolve(CSS_DIR)
+    const resolved = path.resolve(localPath)
+    if (!resolved.startsWith(rootResolved)) continue
     if (fs.existsSync(localPath)) continue
     if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true })
 
     // 依次尝试：原始源、回退源
-    const primary = new URL(rel, baseUrl).toString()
-    const candidates = [primary, ...buildFallbacks(primary)]
+    const primary = new URL(relNorm, baseUrl).toString()
+    const candidates = [primary, ...buildScopedFallbacks(primary)]
     let saved = false
     for (const c of candidates) {
       try {
@@ -220,6 +225,48 @@ async function fetchCssDependencies(baseUrl, cssBuf) {
       // no-op
     }
   }
+
+  // 针对旧版本误保存在 packageRoot/css/webfonts 的情况，统一迁移到 packageRoot/webfonts
+  try {
+    const packageRoot = path.dirname(targetDir)
+    const wrongDir = path.join(packageRoot, 'css', 'webfonts')
+    const correctDir = path.join(packageRoot, 'webfonts')
+    if (fs.existsSync(wrongDir)) {
+      if (!fs.existsSync(correctDir)) fs.mkdirSync(correctDir, { recursive: true })
+      const entries = fs.readdirSync(wrongDir, { withFileTypes: true })
+      for (const e of entries) {
+        if (!e.isFile()) continue
+        const src = path.join(wrongDir, e.name)
+        const dst = path.join(correctDir, e.name)
+        if (!fs.existsSync(dst)) fs.renameSync(src, dst)
+      }
+    }
+  } catch {}
+}
+
+/**
+ * 针对 npm/@scope 包名的CDN回退构造（jsDelivr/unpkg）
+ * 兼容路径：/npm/(css/)?[@scope/]<name>@<version>/...
+ * @param {string} absUrl 绝对URL
+ * @returns {string[]}
+ */
+function buildScopedFallbacks(absUrl) {
+  try {
+    const u = new URL(absUrl)
+    const m = u.pathname.match(/\/(?:css\/)?npm\/(?:@([^/]+)\/)?([^/@]+)@([^/]+)\/(.+)/)
+    if (m) {
+      const scope = m[1]
+      const name = m[2]
+      const version = m[3]
+      const rest = m[4]
+      const pkg = scope ? `@${scope}/${name}@${version}` : `${name}@${version}`
+      return [
+        `https://cdn.jsdelivr.net/npm/${pkg}/${rest}`,
+        `https://unpkg.com/${pkg}/${rest}`
+      ]
+    }
+  } catch {}
+  return []
 }
 
 /**
