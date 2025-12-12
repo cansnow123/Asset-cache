@@ -189,3 +189,15 @@
 - 静态缓存优化：`/` 与 HTML 响应禁用缓存；为首页 CSS/JS 增加版本参数以避免浏览器缓存旧样式与脚本
 - 页面视觉细节：为 `header` 与 `main` 增加间距（≥30px），背景设置 `background-attachment: fixed` 并覆盖视窗（居中、等比、无重复）
 - 修复：CSS 依赖路径对 `..` 上级目录的正确解析与落盘（兼容 Font Awesome 的 `../webfonts`）；增强 CDN 回退匹配支持 `@scope` 包名（jsDelivr / unpkg）
+- 新增：开源许可文件 `LICENSE`（GPL-3.0），并在 README 增加许可说明与仓库地址
+
+## 开源许可与仓库地址
+
+- 许可证：GNU GPL v3（详见仓库根目录 `LICENSE`）
+- 仓库地址：`https://ckk.photo8.site/Photo8/Asset-cache`
+- 使用须知：
+  - 复制、修改与分发本项目需在同等 GPLv3 条款下进行
+  - 分发时需保留版权声明与本许可证文本，并开放源代码
+  - 不提供任何形式的担保，详见 `LICENSE` 的免责声明章节
+
+Copyright © 2025 Asset Cache Server Developer By [SnowZ](https://ckk.photo8.site/Photo8/Asset-cache)
