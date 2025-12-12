@@ -5,3 +5,6 @@
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
 https://cdn.tailwindcss.com
+
+# Element UI 2.15.13 样式（用于验证字体依赖自动抓取）
+https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/theme-chalk/index.css

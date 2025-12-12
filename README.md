@@ -140,6 +140,12 @@
   - 本地保存：`cache/js/cdn.tailwindcss.com/index.js`
   - 对外访问：`/js/cdn.tailwindcss.com/index.js`
 
+### 字体与依赖资源处理（CSS 自动抓取）
+
+- 当抓取 `CSS` 文件时，会自动解析其中的 `url(...)` 引用，并尝试下载相对路径的依赖（如字体、图片等），统一保存到 `cache/css/...` 对应目录下，保持与源路径相同的层级结构。
+- 这样，形如 `@font-face { src: url(fonts/element-icons.woff) }` 的引用将会在本地落盘为：`/css/.../fonts/element-icons.woff`，无需跨域请求第三方源。
+- 失败的依赖抓取会被静默跳过，不影响主 `CSS` 的可用性。
+
 ## 去重策略
 
 - 目标路径存在则跳过抓取，响应中返回 `skipped: true`
@@ -148,6 +154,7 @@
 ## 安全与白名单建议
 
 - 推荐在 CDN/WAF 层配置防盗链白名单（如 `*.aaa.com`、`www.bbb.com`）
+- CORS 建议在 CDN/WAF/网关统一配置按域名的跨域放行策略，服务端默认不设置跨域响应头。
 - 管理接口仅保留 `GET /api/seed`，不提供外部 POST；如需更强控制可扩展签名 URL 校验（服务端或边缘验证令牌）
 
 ## 部署建议

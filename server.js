@@ -71,9 +71,11 @@ function resolveTargetPath(urlStr, contentType) {
   let type
   if (ext === '.css') folder = CSS_DIR
   else if (ext === '.js') folder = JS_DIR
+  else if (['.woff', '.woff2', '.ttf', '.otf', '.eot', '.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) folder = CSS_DIR
   else if (contentType) {
     const ct = (contentType || '').split(';')[0].trim()
     if (ct === 'text/css') folder = CSS_DIR
+    else if (ct.startsWith('font/') || ct.startsWith('image/')) folder = CSS_DIR
     else folder = JS_DIR
   } else {
     folder = JS_DIR
@@ -110,6 +112,114 @@ function resolveTargetPath(urlStr, contentType) {
     fullPath = path.join(rootResolved, base)
   }
   return { fullPath, folder: targetDir, filename: base, type }
+}
+
+/**
+ * 计算适用于CSS依赖资源的保存路径（统一落在 CSS_DIR 下）
+ * @param {string} urlStr 依赖资源的绝对URL
+ * @returns {{fullPath:string, folder:string, filename:string}}
+ */
+function resolveAssetPathForCss(urlStr) {
+  const u = new URL(urlStr)
+  let base = path.basename(u.pathname)
+  if (!base || base === '/') base = 'index'
+  let subDir = path.dirname(u.pathname)
+  if (subDir === '/' || subDir === '.') subDir = ''
+  const raw = subDir.replace(/^\/+/, '').replace(/\\+/g, '/')
+  const safeParts = raw.split('/').filter(p => p && p !== '..')
+  let normalized = safeParts.join('/')
+  if (!normalized) normalized = u.hostname
+  const targetDir = normalized ? path.join(CSS_DIR, normalized) : CSS_DIR
+  let fullPath = path.join(targetDir, base)
+  const resolved = path.resolve(fullPath)
+  const rootResolved = path.resolve(CSS_DIR)
+  if (!resolved.startsWith(rootResolved)) {
+    fullPath = path.join(rootResolved, base)
+  }
+  return { fullPath, folder: targetDir, filename: base }
+}
+
+/**
+ * 提取CSS中的url(...)依赖列表（过滤data:等内联资源）
+ * @param {string} cssText CSS文本内容
+ * @returns {string[]}
+ */
+function extractCssUrls(cssText) {
+  const out = []
+  const re = /url\(\s*(["'])?([^"')]+)\1\s*\)/g
+  let m
+  while ((m = re.exec(cssText)) !== null) {
+    const href = (m[2] || '').trim()
+    if (!href || href.startsWith('data:')) continue
+    out.push(href)
+  }
+  return Array.from(new Set(out))
+}
+
+/**
+ * 在保存CSS后，按相对路径抓取其依赖资源（如字体、图片）
+ * @param {string} baseUrl CSS源的绝对URL
+ * @param {Buffer} cssBuf CSS二进制内容
+ * @returns {Promise<void>}
+ */
+async function fetchCssDependencies(baseUrl, cssBuf) {
+  const cssText = cssBuf.toString('utf8')
+  const refs = extractCssUrls(cssText)
+  if (refs.length === 0) return
+  const base = new URL(baseUrl)
+  // 计算CSS对应的本地子目录（保持与源路径层级一致）
+  let subDir = path.dirname(base.pathname)
+  if (subDir === '/' || subDir === '.') subDir = ''
+  const raw = subDir.replace(/^\/+/, '').replace(/\\+/g, '/')
+  const safeParts = raw.split('/').filter(p => p && p !== '..')
+  let normalized = safeParts.join('/')
+  if (!normalized) normalized = base.hostname
+  const targetDir = normalized ? path.join(CSS_DIR, normalized) : CSS_DIR
+  if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
+
+  // 回退候选源（dist路径包含前缀 css/npm/...，其他公共CDN通常为 npm/...）
+  function buildFallbacks(absUrl) {
+    try {
+      const u = new URL(absUrl)
+      const m = u.pathname.match(/\/(?:css\/)?npm\/([^/]+@[^/]+)\/(.+)/)
+      if (m) {
+        const pkg = m[1]
+        const rest = m[2]
+        return [
+          `https://cdn.jsdelivr.net/npm/${pkg}/${rest}`,
+          `https://unpkg.com/${pkg}/${rest}`
+        ]
+      }
+    } catch {}
+    return []
+  }
+
+  for (const rel of refs) {
+    // 归一化相对路径，计算本地写入位置
+    const relSafe = rel.replace(/\\+/g, '/').replace(/^\/+/, '')
+    const relParts = relSafe.split('/').filter(p => p && p !== '..')
+    const localPath = path.join(targetDir, ...relParts)
+    const localDir = path.dirname(localPath)
+    if (fs.existsSync(localPath)) continue
+    if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true })
+
+    // 依次尝试：原始源、回退源
+    const primary = new URL(rel, baseUrl).toString()
+    const candidates = [primary, ...buildFallbacks(primary)]
+    let saved = false
+    for (const c of candidates) {
+      try {
+        const resp = await axios.get(c, { responseType: 'arraybuffer', timeout: 20000, headers: { 'User-Agent': 'AssetCache/1.0', 'Accept': '*/*' } })
+        fs.writeFileSync(localPath, Buffer.from(resp.data))
+        saved = true
+        break
+      } catch {}
+    }
+    // 失败则跳过，避免影响主流程
+    if (!saved) {
+      // no-op
+    }
+  }
 }
 
 /**
@@ -165,6 +275,13 @@ async function fetchAndStore(urlStr) {
   const pre = resolveTargetPath(urlStr, undefined)
   if (fs.existsSync(pre.fullPath)) {
     const stat = fs.statSync(pre.fullPath)
+    // 若已存在且为CSS，仍尝试解析并抓取依赖资源
+    if (pre.type === 'css') {
+      try {
+        const buf = fs.readFileSync(pre.fullPath)
+        await fetchCssDependencies(urlStr, buf)
+      } catch {}
+    }
     return { url: urlStr, saved: pre.filename, size: stat.size, type: pre.type, skipped: true }
   }
 
@@ -181,7 +298,11 @@ async function fetchAndStore(urlStr) {
   const { fullPath, folder, filename, type } = resolveTargetPath(urlStr, contentType)
   if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true })
 
-  fs.writeFileSync(fullPath, Buffer.from(response.data))
+  const buf = Buffer.from(response.data)
+  fs.writeFileSync(fullPath, buf)
+  if (type === 'css') {
+    await fetchCssDependencies(urlStr, buf)
+  }
   const stat = fs.statSync(fullPath)
   return { url: urlStr, saved: filename, size: stat.size, type, skipped: false }
 }
@@ -220,8 +341,14 @@ ensureCacheDirs()
 registerPublicHomepage(app)
 
 // 静态服务：/css 与 /js 直接映射到缓存目录
-app.use('/css', express.static(CSS_DIR, { maxAge: '365d', immutable: true }))
-app.use('/js', express.static(JS_DIR, { maxAge: '365d', immutable: true }))
+app.use('/css', express.static(CSS_DIR, {
+  maxAge: '365d',
+  immutable: true
+}))
+app.use('/js', express.static(JS_DIR, {
+  maxAge: '365d',
+  immutable: true
+}))
 
 // 健康检查
 app.get('/health', (req, res) => {
