@@ -2,130 +2,148 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Asset Cache - 前端首页</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Asset Cache</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20251128" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20251212" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/icon-64.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="/icon-128.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="/icon-256.png">
+    <meta name="robots" content="noindex, nofollow">
   </head>
   <body>
-    <header class="hero">
-      <div class="container">
-        <h1>Asset Cache</h1>
-        <p class="subtitle">内部资源缓存与静态分发</p>
-        <p class="desc">本网站收录的开源库均仅支持内部使用。</p>
-        <div class="cta-group">
-          <a class="btn" href="/api/seed" target="_blank">触发一次内置 Seed 抓取</a>
-          <a class="btn btn-outline" href="/health" target="_blank">查看健康状态</a>
+    <div class="app-layout">
+      <!-- Header -->
+      <header class="app-header glass">
+        <div class="header-left">
+          <div class="logo-icon"><img src="/icon-64.png" alt="网站LOGO" width="32" height="32"></div>
+          <div class="header-text">
+            <h1>Asset Cache</h1>
+            <span class="status-badge online">Online</span>
+          </div>
         </div>
-      </div>
-    </header>
+        <div class="header-right">
+          <button id="toggleSidebar" class="icon-btn mobile-only" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
 
-    <main class="container">
-      <section class="notice">
-        <h2>使用说明</h2>
-        <p>
-          为保证外部依赖的稳定性，请优先选择成熟公共 CDN 服务。以下为常用公共库加速服务的入口与地址：
-        </p>
-      </section>
+      <main class="app-main">
+        <!-- Sidebar (External Links & Info) -->
+        <aside id="sidebar" class="app-sidebar">
+          <div class="sidebar-content">
+            <section class="sidebar-section">
+              <h2>控制台</h2>
+              <div class="action-group">
+                <a class="btn primary full-width" href="/api/seed" target="_blank">
+                  <span class="icon">⚡</span> 触发 Seed 抓取
+                </a>
+              </div>
+            </section>
 
-      <section class="grid">
-        <article class="card">
-          <h3>BootCDN 加速服务</h3>
-          <p>开源项目免费 CDN 服务，主要同步于 CDNJS 仓库。</p>
-          <a class="link" href="https://www.bootcdn.cn/" target="_blank" rel="noopener">https://www.bootcdn.cn/</a>
-        </article>
-        <article class="card">
-          <h3>CDNJS 前端公共库</h3>
-          <p>由社区维护的大型公共库集合，覆盖范围广。</p>
-          <a class="link" href="https://cdnjs.com/" target="_blank" rel="noopener">https://cdnjs.com/</a>
-        </article>
-        <article class="card">
-          <h3>jsDelivr</h3>
-          <p>全球 CDN，提供 npm/gh 等来源的静态资源分发。</p>
-          <a class="link" href="https://www.jsdelivr.com/" target="_blank" rel="noopener">https://www.jsdelivr.com/</a>
-        </article>
-        <article class="card">
-          <h3>七牛免费 CDN 前端公开库</h3>
-          <p>开放静态文件 CDN，覆盖常见开源库。</p>
-          <a class="link" href="https://www.staticfile.org/" target="_blank" rel="noopener">https://www.staticfile.org/</a>
-        </article>
-        <article class="card">
-          <h3>又拍云常用 JavaScript 库 CDN 服务</h3>
-          <p>托管常用 JS 库，直接通过 CDN 加速引用。</p>
-          <a class="link" href="http://jscdn.upai.com/" target="_blank" rel="noopener">http://jscdn.upai.com/</a>
-        </article>
-        <article class="card">
-          <h3>Google Hosted Libraries</h3>
-          <p>Google 托管的常用前端库集合（部分地区访问受限）。</p>
-          <a class="link" href="https://developers.google.com/speed/libraries" target="_blank" rel="noopener">https://developers.google.com/speed/libraries</a>
-        </article>
-        <article class="card">
-          <h3>Microsoft Ajax CDN</h3>
-          <p>微软提供的前端库公共 CDN。</p>
-          <a class="link" href="https://ajax.aspnetcdn.com/" target="_blank" rel="noopener">https://ajax.aspnetcdn.com/</a>
-        </article>
-      </section>
+            <section class="sidebar-section">
+              <h2>公共资源加速</h2>
+              <p class="desc">建议优先使用成熟的公共 CDN 服务。</p>
+              <nav class="nav-links">
+                <a href="https://cdnjs.com/" target="_blank" class="nav-item">
+                  <span class="nav-title">CDNJS</span>
+                  <span class="nav-url">cdnjs.com</span>
+                </a>
+                <a href="https://www.jsdelivr.com/" target="_blank" class="nav-item">
+                  <span class="nav-title">jsDelivr</span>
+                  <span class="nav-url">jsdelivr.com</span>
+                </a>
+                <a href="https://www.staticfile.org/" target="_blank" class="nav-item">
+                  <span class="nav-title">七牛云 CDN</span>
+                  <span class="nav-url">staticfile.org</span>
+                </a>
+                <a href="http://jscdn.upai.com/" target="_blank" class="nav-item">
+                  <span class="nav-title">又拍云 CDN</span>
+                  <span class="nav-url">jscdn.upai.com</span>
+                </a>
+              </nav>
+            </section>
+            
+            <footer class="sidebar-footer">
+               <p>© 2025 Asset Cache & © Photo8 Tools Team</p>
+               <p><a href="https://ckk.photo8.site/Photo8/Asset-cache" target="_blank">自己部署一个</a></p>
+            </footer>
+          </div>
+        </aside>
 
-      <section class="cache">
-        <div class="cache-header">
-          <h2>已缓存资源</h2>
-          <div class="toolbar">
-            <div class="toolbar-top">
-              <div class="seg">
+        <!-- Main Content (Cache Manager) -->
+        <section class="app-content">
+          <!-- Toolbar -->
+          <div class="toolbar glass">
+            <div class="toolbar-row">
+              <div class="seg-control">
                 <button class="seg-btn is-active" data-type="">全部</button>
                 <button class="seg-btn" data-type="css">CSS</button>
                 <button class="seg-btn" data-type="js">JS</button>
               </div>
-              <select id="timeRange" class="select">
-                <option value="">全部时间</option>
-                <option value="24">最近24小时</option>
-                <option value="168">最近7天</option>
-                <option value="720">最近30天</option>
-              </select>
-              <button id="refresh" class="btn">刷新列表</button>
+              <div class="actions-right">
+                <button id="refresh" class="icon-btn" title="刷新">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div class="toolbar-bottom">
-              <input id="search" class="search" type="text" placeholder="按名称或路径片段搜索..." />
-              <select id="sortBy" class="select">
-                <option value="mtime">按更新时间</option>
-                <option value="name">按名称</option>
-                <option value="size">按大小</option>
-              </select>
-              <select id="order" class="select">
-                <option value="desc">倒序</option>
-                <option value="asc">正序</option>
-              </select>
-              <select id="pageSize" class="select">
-                <option value="20">每页20</option>
-                <option value="30" selected>每页30</option>
-                <option value="50">每页50</option>
-              </select>
+            
+            <div class="toolbar-row secondary">
+              <div class="search-wrapper">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input id="search" type="text" placeholder="输入关键词搜索更多资源..." />
+              </div>
+              <div class="filters">
+                <select id="timeRange" class="select-clean">
+                  <option value="">全部时间</option>
+                  <option value="24">24小时内</option>
+                  <option value="168">7天内</option>
+                </select>
+                <select id="sortBy" class="select-clean">
+                  <option value="mtime">按时间</option>
+                  <option value="size">按大小</option>
+                  <option value="name">按名称</option>
+                </select>
+                <!-- Hidden inputs to maintain compatibility with app.js if needed, or mapped via CSS -->
+                <select id="order" class="select-clean" style="display:none"><option value="desc">Desc</option><option value="asc">Asc</option></select>
+                <select id="pageSize" class="select-clean" style="display:none"><option value="6">6</option></select>
+              </div>
+            </div>
+            <div id="stats" class="stats-bar">加载中...</div>
+          </div>
+
+          <!-- Scrollable List -->
+          <div class="list-container">
+            <div id="list" class="resource-list"></div>
+            <div id="searchHint" class="search-hint" style="display:none">
+              仅显示部分内容，请使用搜索功能查找更多资源
+            </div>
+            <div id="sentinel" class="loading-sentinel">
+              <div class="spinner"></div>
             </div>
           </div>
-        </div>
-        <div id="stats" class="stats">加载中...</div>
-        <div id="list" class="list"></div>
-        <div id="sentinel" class="sentinel">加载更多...</div>
-        <button id="backTop" class="back-top" title="回到顶部">↑</button>
-      </section>
+          
+          <!-- Back Top (Might not be needed if scrolling is fast/internal, but good to have) -->
+          <button id="backTop" class="fab-btn">↑</button>
+        </section>
+      </main>
+      
+      <!-- Mobile Sidebar Overlay -->
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    </div>
 
-      <section class="footer-note">
-        <p>
-          说明：本服务仅用于内部缓存和分发，严禁用于非法用途。若需高可用外部公共库，请使用上方所列 CDN 服务。
-        </p>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <div class="container">
-        <span>© 2025 Asset Cache & © Photo8 Tools Team</span>
-        <nav>
-          <a href="https://ckk.photo8.site/Photo8/Asset-cache" target="_blank">项目地址</a>
-        </nav>
-      </div>
-    </footer>
-    <script src="/app.js?v=20251128"></script>
+    <script src="/app.js?v=20251212"></script>
   </body>
-  </html>
+</html>
