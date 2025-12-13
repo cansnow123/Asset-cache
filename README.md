@@ -166,6 +166,20 @@
   - `npm install && npm start`
   - 建议使用 systemd/pm2 守护进程，并在 Nginx 反向代理到 `127.0.0.1:<PORT>`
 
+## 环境变量示例（.env.example）
+
+- 复制示例文件并按需修改：
+  - Windows PowerShell：`Copy-Item .env.example .env`
+  - Linux/Mac：`cp .env.example .env`
+- 可用变量：
+  - `PORT`：服务器端口（默认 `3000`）
+  - `SEED_SOURCE`：`file` 或 `url`（默认 `file`）
+  - `SEED_URL`：当 `SEED_SOURCE=url` 时的远程TXT地址（Gitea Raw直链或API）
+  - `SEED_AUTH_HEADER`：自定义认证头（如 `Bearer <token>`）
+  - `SEED_TOKEN`：令牌（将自动以 `Authorization: token <TOKEN>` 发送）
+- 生效方式：修改 `.env` 后重启服务
+- 相关代码位置：`server.js:19`（环境变量读取）、`server.js:419`（远程/本地加载逻辑）
+
 ## 常见问题（FAQ）
 
 - 修改 `seed.txt` 是否需要重启？不需要，`GET /api/seed` 会重新读取。
@@ -190,6 +204,7 @@
 - 页面视觉细节：为 `header` 与 `main` 增加间距（≥30px），背景设置 `background-attachment: fixed` 并覆盖视窗（居中、等比、无重复）
 - 修复：CSS 依赖路径对 `..` 上级目录的正确解析与落盘（兼容 Font Awesome 的 `../webfonts`）；增强 CDN 回退匹配支持 `@scope` 包名（jsDelivr / unpkg）
 - 新增：开源许可文件 `LICENSE`（GPL-3.0），并在 README 增加许可说明与仓库地址
+ - 新增：`seed.txt` 支持远程来源（Gitea 原始文件），通过环境变量配置
 
 ## 开源许可与仓库地址
 
@@ -199,5 +214,19 @@
   - 复制、修改与分发本项目需在同等 GPLv3 条款下进行
   - 分发时需保留版权声明与本许可证文本，并开放源代码
   - 不提供任何形式的担保，详见 `LICENSE` 的免责声明章节
+
+## Seed 配置（本地与远程）
+
+- 默认行为：`GET /api/seed` 读取仓库根目录的本地 `seed.txt`
+- 远程来源：将环境变量设置为以下值以从 Gitea 原始文件拉取
+  - `SEED_SOURCE=url`
+  - `SEED_URL=<你的Gitea原始TXT地址>`（例如：`https://gitea.example.com/api/v1/repos/<owner>/<repo>/raw/seed.txt?ref=main` 或 Raw 文件直链）
+  - 可选认证：
+    - `SEED_AUTH_HEADER="Bearer <token>"`（自定义 Authorization 头）
+    - 或 `SEED_TOKEN="<token>"`（自动使用 `Authorization: token <token>` 头）
+- 回退机制：远程拉取失败时，若本地 `seed.txt` 存在则自动使用本地文件
+- 相关代码：
+  - 远程/本地加载逻辑：`server.js:419`（`loadSeedTxt`）
+  - 执行批量抓取：`server.js:440`（`runSeed`）
 
 Copyright © 2025 Asset Cache Server Developer By [SnowZ](https://ckk.photo8.site/Photo8/Asset-cache)

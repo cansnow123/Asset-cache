@@ -16,6 +16,11 @@ const CSS_DIR = path.join(CACHE_ROOT, 'css')
 const JS_DIR = path.join(CACHE_ROOT, 'js')
 const SEED_FILE = path.join(__dirname, 'seed.txt')
 const PUBLIC_DIR = path.join(__dirname, 'public')
+// Seed 源设置（默认读取本地 seed.txt，可选从远程URL读取原始TXT）
+const SEED_SOURCE = (process.env.SEED_SOURCE || 'file').toLowerCase()
+const SEED_URL = process.env.SEED_URL || ''
+const SEED_TOKEN = process.env.SEED_TOKEN || ''
+const SEED_AUTH_HEADER = process.env.SEED_AUTH_HEADER || ''
 
 // 中间件
 app.use(express.json({ limit: '2mb' }))
@@ -405,14 +410,35 @@ app.get('/health', (req, res) => {
 // 已移除外部提交接口：/api/upload-txt 与 /api/cache
 
 /**
- * 从项目内置 seed.txt 加载URL并执行批量缓存
+ * 加载 Seed 文本（本地或远程）
+ * - 当 SEED_SOURCE = 'url' 且配置了 SEED_URL 时，优先从远程拉取
+ * - 支持可选认证头（SEED_AUTH_HEADER），或 SEED_TOKEN 以 Authorization: token <TOKEN> 形式
+ * - 远程拉取失败时回退到本地文件（若存在）
+ * @returns {Promise<string>} 返回原始TXT文本（可能为空字符串）
+ */
+async function loadSeedTxt() {
+  if (SEED_SOURCE === 'url' && SEED_URL) {
+    try {
+      const headers = { 'User-Agent': 'AssetCache/1.0', 'Accept': 'text/plain, */*' }
+      if (SEED_AUTH_HEADER) headers['Authorization'] = SEED_AUTH_HEADER
+      else if (SEED_TOKEN) headers['Authorization'] = `token ${SEED_TOKEN}`
+      const resp = await axios.get(SEED_URL, { responseType: 'text', timeout: 20000, headers })
+      const txt = typeof resp.data === 'string' ? resp.data : (resp.data?.toString?.() || '')
+      if (txt && txt.trim().length > 0) return txt
+    } catch (e) {
+      // 回退到本地
+    }
+  }
+  if (fs.existsSync(SEED_FILE)) return fs.readFileSync(SEED_FILE, 'utf8')
+  return ''
+}
+
+/**
+ * 加载Seed（本地/远程）并执行批量缓存
  * @returns {Promise<{count:number, results:any[]}>}
  */
-async function runSeedFromFile() {
-  if (!fs.existsSync(SEED_FILE)) {
-    return { count: 0, results: [] }
-  }
-  const txt = fs.readFileSync(SEED_FILE, 'utf8')
+async function runSeed() {
+  const txt = await loadSeedTxt()
   const urls = parseTxtToUrls(txt)
   if (urls.length === 0) return { count: 0, results: [] }
   const results = await batchFetch(urls)
@@ -422,7 +448,7 @@ async function runSeedFromFile() {
 // 触发内置seed.txt抓取
 app.get('/api/seed', async (req, res) => {
   try {
-    const r = await runSeedFromFile()
+    const r = await runSeed()
     const mapped = (r.results || []).map(x => ({
       url: x.url,
       saved: x.saved ? getPublicPath(x.url, x.type, x.saved) : '',

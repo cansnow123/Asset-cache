@@ -1,18 +1,83 @@
 # 示例：本文件内置一些常用的CSS/JS地址用于测试
 # 注释行以 # 开头；空行将被忽略
 
-# Bootstrap 5.3.0 样式与脚本
+# Bootstrap
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
 https://cdn.jsdmirror.com/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
-https://cdn.tailwindcss.com
 
-# Element UI 2.15.13 样式（用于验证字体依赖自动抓取）
-https://dist.jicelue.com/css/npm/element-ui@2.15.13/lib/theme-chalk/index.css
-
-# Font Awesome Free 6（验证 webfonts 自动抓取）
+# font-awesome
 https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css
 https://s4.zstatic.net/ajax/libs/font-awesome/5.15.4/css/all.min.css
 https://s4.zstatic.net/ajax/libs/font-awesome/5.15.4/css/v4-shims.min.css
 https://s4.zstatic.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css
 https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css
 https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css
+
+# layer
+https://s4.zstatic.net/ajax/libs/layer/3.1.1/layer.js
+https://s4.zstatic.net/ajax/libs/layer/3.1.1/theme/default/layer.css
+
+# iconify
+https://code.iconify.design/3/3.1.1/iconify.min.js
+
+# JQUERY
+https://upcdn.b0.upaiyun.com/libs/jquery/jquery-1.9.1.min.js
+https://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.3.min.js
+https://upcdn.b0.upaiyun.com/libs/jqueryui/jquery.ui-1.9.1.min.js
+https://cdn.staticfile.net/jquery/3.7.1/jquery.js
+https://cdn.staticfile.net/jquery/3.7.1/jquery.min.js
+https://cdn.staticfile.net/jquery/3.7.1/jquery.min.map
+https://cdn.staticfile.net/jquery/3.7.1/jquery.slim.js
+https://cdn.staticfile.net/jquery/3.7.1/jquery.slim.min.js
+https://cdn.staticfile.net/jquery/3.7.1/jquery.slim.min.map
+
+# xgplayer
+https://unpkg.byted-static.com/xgplayer/3.0.10/dist/index.min.js
+https://unpkg.byted-static.com/xgplayer-hls/3.0.10/dist/index.min.js
+https://unpkg.byted-static.com/xgplayer-flv/3.0.10/dist/index.min.js
+https://unpkg.byted-static.com/xgplayer-dash/3.0.0-alpha.2/dist/index.min.js
+https://unpkg.byted-static.com/xgplayer-mp4/3.0.10/dist/index.min.js
+https://unpkg.byted-static.com/xgplayer/3.0.10/dist/index.min.css
+https://cdn.jsdelivr.net/npm/xgplayer-hls.js@3.0.20/dist/index.min.js
+
+# swarmcloud
+https://cdn.jsdelivr.net/npm/@swarmcloud/hls/p2p-engine.min.js
+https://cdn.jsdelivr.net/npm/@swarmcloud/hls/hls.min.js
+
+# tailwindcss/browser
+https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.17/dist/index.global.min.js
+https://cdn.tailwindcss.com
+
+# iconify
+https://code.iconify.design/3/3.1.1/iconify.min.js
+
+# notyf
+https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css
+https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js
+
+# Vue.js
+https://unpkg.com/vue@3.5.7/dist/vue.global.prod.js
+https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js
+
+# Axios
+https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js
+https://cdn.jsdelivr.net/npm/axios@0.26.0/dist/axios.min.js
+https://cdn.jsdmirror.com/npm/axios@0.21.1/dist/axios.min.js
+
+# Swiper
+https://cdnjs.cloudflare.com/ajax/libs/Swiper/7.4.1/swiper-bundle.min.js
+https://cdnjs.cloudflare.com/ajax/libs/Swiper/7.4.1/swiper-bundle.min.css
+
+# npm
+https://cdn.jsdelivr.net/npm/element-ui@2.15.7/lib/theme-chalk/index.css
+https://cdn.jsdelivr.net/npm/element-ui@2.15.7/lib/index.js
+https://cdn.jsdelivr.net/npm/element-ui/lib/index.js
+https://cdn.jsdelivr.net/npm/element-ui/lib/theme-chalk/index.css
+https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/theme-chalk/index.css
+https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/index.js
+https://cdn.jsdmirror.com/npm/element-ui@2.15.6/lib/theme-chalk/index.css
+https://cdn.jsdmirror.com/npm/element-ui@2.15.6/lib/index.js
+
+# Emoji
+https://cdn.staticfile.net/emoji-js/3.8.0/emoji.js
+https://cdn.staticfile.net/emoji-js/3.8.0/emoji.css
