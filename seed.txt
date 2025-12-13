@@ -12,7 +12,7 @@ https://s4.zstatic.net/ajax/libs/font-awesome/5.15.4/css/v4-shims.min.css
 https://s4.zstatic.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css
 https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css
 https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css
-https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
+https://cdn.staticfile.net/font-awesome/6.4.0/css/all.min.css
 
 # layer
 https://s4.zstatic.net/ajax/libs/layer/3.1.1/layer.js
@@ -84,4 +84,4 @@ https://cdn.staticfile.net/emoji-js/3.8.0/emoji.js
 https://cdn.staticfile.net/emoji-js/3.8.0/emoji.css
 
 # prism
-https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css
+https://cdn.staticfile.net/prism/1.29.0/themes/prism-tomorrow.min.css
