@@ -180,6 +180,22 @@
 - 生效方式：修改 `.env` 后重启服务
 - 相关代码位置：`server.js:19`（环境变量读取）、`server.js:419`（远程/本地加载逻辑）
 
+## 前端交互更新（Seed抓取）
+
+- 禁止跳转到 `/api/seed`，前端通过 `fetch` 异步触发 Seed 抓取
+- 成功无新增：黄色提示 `已执行Seed抓取，无新增数据`
+- 成功有新增：绿色提示 `已执行Seed抓取，发现 ${新增数量} 条新数据`
+- 错误：红色提示 `请求失败，请稍后重试`
+- Toast：右下角非模态，自动隐藏 3 秒；颜色由代码控制
+- 加载：请求超过 500ms 时显示按钮内微型旋转指示，结束后自动隐藏
+- 防抖：点击 300ms 防抖，避免重复请求与误触
+- 代码位置：
+  - 触发按钮：`public/index.html:46`（`id="seedTrigger"`）
+  - 异步调用与提示：`public/app.js:275`（`runSeed`）、`public/app.js:97`（`toastBR`）
+  - 加载指示逻辑：`public/app.js:258`（`showSeedSpinner`，500ms 延迟显示）
+  - 计算新增数量：`public/app.js:267`（`calcNewCount`）
+  - 样式：`public/styles.css:614`（`.toast-br`）、`public/styles.css:636`（`.btn-spinner`）、`public/styles.css:648`（`.btn.is-loading`）
+
 ## 常见问题（FAQ）
 
 - 修改 `seed.txt` 是否需要重启？不需要，`GET /api/seed` 会重新读取。

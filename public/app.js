@@ -14,6 +14,7 @@
   const elBackTop = document.getElementById('backTop')
   const elSearchHint = document.getElementById('searchHint')
   const listContainer = document.querySelector('.list-container')
+  const elSeedTrigger = document.getElementById('seedTrigger')
 
   // Mobile Sidebar Logic
   const toggleSidebar = document.getElementById('toggleSidebar')
@@ -84,6 +85,32 @@
     t.classList.add('show')
     clearTimeout(toastTimer)
     toastTimer = setTimeout(() => t.classList.remove('show'), 1800)
+  }
+
+  let toastBrTimer
+  /**
+   * 底部右侧Toast提示（非模态）
+   * @param {'success'|'info'|'error'} type 提示类型
+   * @param {string} msg 提示文本
+   * @param {number} duration 显示时长毫秒
+   */
+  const toastBR = (type, msg, duration = 3000) => {
+    let t = document.querySelector('.toast-br')
+    if (!t) {
+      t = document.createElement('div')
+      t.className = 'toast-br'
+      document.body.appendChild(t)
+    }
+    t.textContent = msg
+    const map = {
+      success: 'rgba(52,199,89,0.9)',   // 绿色
+      info: 'rgba(255,204,0,0.9)',      // 黄色（无变化）
+      error: 'rgba(255,59,48,0.9)'      // 红色
+    }
+    t.style.background = map[type] || map.info
+    t.classList.add('show')
+    clearTimeout(toastBrTimer)
+    toastBrTimer = setTimeout(() => t.classList.remove('show'), duration)
   }
 
   /**
@@ -219,6 +246,65 @@
     }
     load(true)
   })
+
+  // Seed触发：异步调用并提示新增数量
+  let seedBusy = false
+  let seedDebounceTimer
+  let seedSpinnerTimer
+  /**
+   * 显示/隐藏Seed按钮上的加载指示器
+   * @param {boolean} show 是否显示
+   */
+  const showSeedSpinner = show => {
+    if (!elSeedTrigger) return
+    elSeedTrigger.classList.toggle('is-loading', !!show)
+  }
+  /**
+   * 计算新增条目数量
+   * @param {{results:Array<{skipped:boolean,error?:string}>}} data 接口返回数据
+   * @returns {number}
+   */
+  const calcNewCount = data => {
+    const arr = Array.isArray(data?.results) ? data.results : []
+    return arr.filter(x => !x.skipped && !x.error).length
+  }
+  /**
+   * 触发Seed抓取（带防抖、加载延时与错误处理）
+   * @returns {Promise<void>}
+   */
+  const runSeed = async () => {
+    if (seedBusy) return
+    seedBusy = true
+    if (elSeedTrigger) elSeedTrigger.disabled = true
+    // 超过500ms才显示加载指示
+    seedSpinnerTimer = setTimeout(() => showSeedSpinner(true), 500)
+    try {
+      const resp = await fetch('/api/seed', { method: 'GET' })
+      const data = await resp.json()
+      const newCount = calcNewCount(data)
+      if (newCount > 0) {
+        toastBR('success', `已执行Seed抓取，发现 ${newCount} 条新数据`)
+      } else {
+        toastBR('info', '已执行Seed抓取，无新增数据')
+      }
+      // 刷新列表
+      load(true)
+    } catch (e) {
+      toastBR('error', '请求失败，请稍后重试')
+    } finally {
+      clearTimeout(seedSpinnerTimer)
+      showSeedSpinner(false)
+      seedBusy = false
+      if (elSeedTrigger) elSeedTrigger.disabled = false
+    }
+  }
+  if (elSeedTrigger) {
+    elSeedTrigger.addEventListener('click', () => {
+      if (seedBusy) return
+      clearTimeout(seedDebounceTimer)
+      seedDebounceTimer = setTimeout(runSeed, 300)
+    })
+  }
 
   // 虚拟滚动/无限加载
   const io = new IntersectionObserver(entries => {
