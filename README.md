@@ -2,6 +2,10 @@
 
 一个用于将外部 CSS/JS 资源永久缓存到本地并通过自有域名提供静态访问的 Node 服务。支持上传 TXT 批量抓取、按原 URL 目录层级保存、去重跳过、返回可直接引用的公共路径与完整 URL，适合与 CDN 防盗链配合使用。
 
+Gitea：https://ckk.photo8.site/Photo8/Asset-cache
+
+Github：https://github.com/cansnow123/Asset-cache
+
 ## 特性
 
 - 保留原始目录层级：按源 URL 路径保存到 `cache/css` 或 `cache/js` 下
