@@ -85,3 +85,6 @@ https://cdn.staticfile.net/emoji-js/3.8.0/emoji.css
 
 # prism
 https://cdn.staticfile.net/prism/1.29.0/themes/prism-tomorrow.min.css
+
+# relationship
+https://passer-by.com/relationship/dist/relationship.min.js
