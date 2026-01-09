@@ -83,6 +83,7 @@ https://cdn.jsdmirror.com/npm/element-ui@2.15.6/lib/index.js
 # Emoji
 https://cdn.staticfile.net/emoji-js/3.8.0/emoji.js
 https://cdn.staticfile.net/emoji-js/3.8.0/emoji.css
+https://cdn.jsdelivr.net/gh/GamerNoTitle/ValineCDN@master/
 
 # prism
 https://cdn.staticfile.net/prism/1.29.0/themes/prism-tomorrow.min.css
