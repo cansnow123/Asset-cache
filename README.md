@@ -144,6 +144,13 @@ Github：https://github.com/cansnow123/Asset-cache
   - 本地保存：`cache/js/cdn.tailwindcss.com/index.js`
   - 对外访问：`/js/cdn.tailwindcss.com/index.js`
 
+### 扩展名修正规则
+
+- 针对 URL 不包含标准扩展名的情况（如 `hls.js@latest`），系统会根据响应的 `Content-Type` 强制修正：
+  - `text/css` → 强制追加 `.css`
+  - `application/javascript` 等 → 强制追加 `.js`
+- 示例：`.../hls.js@latest` (js) → 本地保存为 `.../hls.js@latest.js`，确保浏览器能正确识别 MIME 类型。
+
 ### 字体与依赖资源处理（CSS 自动抓取）
 
 - 当抓取 `CSS` 文件时，会自动解析其中的 `url(...)` 引用，并尝试下载相对路径的依赖（如字体、图片等），统一保存到 `cache/css/...` 对应目录下，保持与源路径相同的层级结构。

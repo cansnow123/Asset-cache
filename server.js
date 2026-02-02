@@ -91,6 +91,19 @@ function resolveTargetPath(urlStr, contentType) {
   else if ((contentType || '').split(';')[0].trim() === 'text/css') type = 'css'
   else type = 'js'
 
+  // 增强修复：根据 Content-Type 强制修正扩展名（解决 hls.js@latest 等非标准后缀问题）
+  const ct = (contentType || '').split(';')[0].trim().toLowerCase()
+  const isCss = ct === 'text/css'
+  const isJs = ['application/javascript', 'application/x-javascript', 'text/javascript'].includes(ct)
+  
+  if (isCss && ext !== '.css') {
+    base += '.css'
+    ext = '.css'
+  } else if (isJs && ext !== '.js') {
+    base += '.js'
+    ext = '.js'
+  }
+
   // 无扩展名时根据判定类型补全扩展名，确保同一URL在抓取前后路径一致
   if (!ext) {
     if (type === 'css') { base = `${base}.css`; ext = '.css' }
