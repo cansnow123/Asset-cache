@@ -42,6 +42,12 @@ https://unpkg.byted-static.com/xgplayer-mp4/3.0.10/dist/index.min.js
 https://unpkg.byted-static.com/xgplayer/3.0.10/dist/index.min.css
 https://cdn.jsdelivr.net/npm/xgplayer-hls.js@3.0.20/dist/index.min.js
 
+# artplayer
+https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.css
+https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js
+https://cdn.jsdelivr.net/npm/hls.js@latest
+https://cdn.jsdelivr.net/npm/flv.js@latest
+
 # swarmcloud
 https://cdn.jsdelivr.net/npm/@swarmcloud/hls/p2p-engine.min.js
 https://cdn.jsdelivr.net/npm/@swarmcloud/hls/hls.min.js
