@@ -96,3 +96,15 @@ https://cdn.staticfile.net/prism/1.29.0/themes/prism-tomorrow.min.css
 
 # relationship
 https://passer-by.com/relationship/dist/relationship.min.js
+
+# DPlayer
+https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css
+https://cdn.jsdelivr.net/npm/flv.js/dist/flv.min.js
+https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js
+
+# es-module-shims
+https://cdn.jsdelivr.net/npm/es-module-shims@1/dist/es-module-shims.min.js
+
+# P2P Media Loader
+https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/dist/p2p-media-loader-core.es.min.js
+https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader-hlsjs.es.min.js
