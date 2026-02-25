@@ -66,6 +66,7 @@ https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js
 # Vue.js
 https://unpkg.com/vue@3.5.7/dist/vue.global.prod.js
 https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js
+https://unpkg.com/vue@3/dist/vue.global.js
 
 # Axios
 https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js
@@ -86,6 +87,11 @@ https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/theme-chalk/index.css
 https://cdn.jsdmirror.com/npm/element-ui@2.15.13/lib/index.js
 https://cdn.jsdmirror.com/npm/element-ui@2.15.6/lib/theme-chalk/index.css
 https://cdn.jsdmirror.com/npm/element-ui@2.15.6/lib/index.js
+https://unpkg.com/element-plus/dist/index.css
+https://unpkg.com/vue@3/dist/vue.global.js
+https://unpkg.com/element-plus@2.13.2/dist/index.full.js
+https://unpkg.com/@element-plus/icons-vue@2.3.2/dist/index.iife.min.js
+
 
 # Emoji
 https://cdn.staticfile.net/emoji-js/3.8.0/emoji.js
