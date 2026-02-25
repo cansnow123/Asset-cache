@@ -108,3 +108,6 @@ https://cdn.jsdelivr.net/npm/es-module-shims@1/dist/es-module-shims.min.js
 # P2P Media Loader
 https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/dist/p2p-media-loader-core.es.min.js
 https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader-hlsjs.es.min.js
+
+# translate
+https://raw.githubusercontent.com/xnx3/translate/refs/heads/master/translate.js/translate.js
