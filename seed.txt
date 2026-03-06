@@ -94,6 +94,7 @@ https://unpkg.com/element-plus@2.13.2/dist/index.full.js
 https://unpkg.com/element-plus@2.13.4/dist/index.full.js
 https://unpkg.com/@element-plus/icons-vue@2.3.2/dist/index.iife.min.js
 https://unpkg.com/element-plus@2.13.4/dist/index.css
+https://unpkg.com/vue@3/dist/vue.global.prod.js
 
 
 # Emoji
