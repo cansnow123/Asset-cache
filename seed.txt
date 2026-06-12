@@ -121,3 +121,10 @@ https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader
 
 # translate
 https://raw.githubusercontent.com/xnx3/translate/refs/heads/master/translate.js/translate.js
+
+# lxgw-wenkai-screen-web
+https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/style.css
+https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/lxgwwenkaiscreen/result.css
+https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/lxgwwenkaigbscreen/result.css
+https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/lxgwwenkaimonoscreen/result.css
+https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-web/lxgwwenkaimonogbscreen/result.css
