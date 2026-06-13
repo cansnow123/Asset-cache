@@ -21,6 +21,10 @@ const SEED_SOURCE = (process.env.SEED_SOURCE || 'file').toLowerCase()
 const SEED_URL = process.env.SEED_URL || ''
 const SEED_TOKEN = process.env.SEED_TOKEN || ''
 const SEED_AUTH_HEADER = process.env.SEED_AUTH_HEADER || ''
+const seedTaskState = {
+  current: null,
+  latest: null
+}
 
 // 中间件
 app.use(express.json({ limit: '2mb' }))
@@ -47,10 +51,13 @@ function ensureCacheDirs() {
 function registerPublicHomepage(app) {
   if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR)
   app.use(express.static(PUBLIC_DIR, {
-    maxAge: '1h',
+    maxAge: '0',
     setHeaders: (res, filePath) => {
-      if (path.extname(filePath) === '.html') {
-        res.setHeader('Cache-Control', 'no-cache')
+      const ext = path.extname(filePath).toLowerCase()
+      if (ext === '.html' || ext === '.css' || ext === '.js') {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+        res.setHeader('Pragma', 'no-cache')
+        res.setHeader('Expires', '0')
       }
     }
   }))
@@ -458,24 +465,107 @@ async function runSeed() {
   return { count: results.length, results }
 }
 
-// 触发内置seed.txt抓取
-app.get('/api/seed', async (req, res) => {
-  try {
-    const r = await runSeed()
-    const mapped = (r.results || []).map(x => ({
-      url: x.url,
-      saved: x.saved ? getPublicPath(x.url, x.type, x.saved) : '',
-      accessUrl: x.saved ? buildAccessUrl(req, x.url, x.type, x.saved) : '',
-      size: x.size,
-      type: x.type,
-      skipped: x.skipped,
-      error: x.error,
-      filename: x.saved
-    }))
-    res.json({ count: mapped.length, results: mapped })
-  } catch (e) {
-    res.status(500).json({ error: e.message })
+function countSeedNewItems(results) {
+  return (results || []).filter(item => !item.skipped && !item.error).length
+}
+
+function mapSeedResults(req, results) {
+  return (results || []).map(x => ({
+    url: x.url,
+    saved: x.saved ? getPublicPath(x.url, x.type, x.saved) : '',
+    accessUrl: x.saved ? buildAccessUrl(req, x.url, x.type, x.saved) : '',
+    size: x.size,
+    type: x.type,
+    skipped: x.skipped,
+    error: x.error,
+    filename: x.saved
+  }))
+}
+
+function createSeedTaskSnapshot(task) {
+  if (!task) {
+    return {
+      taskId: '',
+      status: 'idle',
+      running: false,
+      startedAt: 0,
+      finishedAt: 0,
+      count: 0,
+      newCount: 0,
+      error: '',
+      message: '等待操作',
+      results: []
+    }
   }
+  return {
+    taskId: task.taskId,
+    status: task.status,
+    running: task.status === 'running',
+    startedAt: task.startedAt,
+    finishedAt: task.finishedAt || 0,
+    count: task.count || 0,
+    newCount: task.newCount || 0,
+    error: task.error || '',
+    message: task.message || '',
+    results: task.results || []
+  }
+}
+
+function startSeedTask(req) {
+  if (seedTaskState.current && seedTaskState.current.status === 'running') {
+    return { started: false, task: seedTaskState.current }
+  }
+
+  const task = {
+    taskId: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    status: 'running',
+    startedAt: Date.now(),
+    finishedAt: 0,
+    count: 0,
+    newCount: 0,
+    error: '',
+    message: '正在抓取中',
+    results: []
+  }
+
+  seedTaskState.current = task
+
+  ;(async () => {
+    try {
+      const runResult = await runSeed()
+      const mapped = mapSeedResults(req, runResult.results || [])
+      const newCount = countSeedNewItems(mapped)
+      task.status = 'success'
+      task.finishedAt = Date.now()
+      task.count = mapped.length
+      task.newCount = newCount
+      task.results = mapped
+      task.message = newCount > 0 ? `新增 ${newCount} 条资源` : '无新增资源'
+    } catch (error) {
+      task.status = 'error'
+      task.finishedAt = Date.now()
+      task.error = error.message
+      task.message = '抓取失败'
+    } finally {
+      seedTaskState.latest = { ...task }
+      seedTaskState.current = null
+    }
+  })()
+
+  return { started: true, task }
+}
+
+app.post('/api/seed', (req, res) => {
+  const { started, task } = startSeedTask(req)
+  res.json({
+    started,
+    ...createSeedTaskSnapshot(task)
+  })
+})
+
+app.get('/api/seed-status', (req, res) => {
+  const task = seedTaskState.current || seedTaskState.latest
+  res.json(createSeedTaskSnapshot(task))
 })
 
 /**
@@ -505,6 +595,39 @@ function walkFiles(rootDir) {
 }
 
 /**
+ * 判断文件是否应出现在缓存资源列表中
+ * 仅保留真正的 CSS / JS 资源，过滤字体、图片、source map 等依赖文件
+ * @param {'css'|'js'} type 资源类型目录
+ * @param {string} rel 相对路径
+ * @returns {boolean}
+ */
+function shouldListAsset(type, rel) {
+  const ext = (path.extname(rel) || '').toLowerCase()
+  if (type === 'css') return ext === '.css'
+  if (type === 'js') return ext === '.js'
+  return false
+}
+
+/**
+ * 判断字符串是否像一个版本号
+ * @param {string} value 输入文本
+ * @returns {boolean}
+ */
+function isVersionLike(value) {
+  return /^[vV]?\d+(?:[._-]\d+)*(?:[-._]?(?:alpha|beta|rc|canary|latest)[\w.-]*)?$/i.test(value)
+}
+
+/**
+ * 从文件名中提取近似版本号
+ * @param {string} filename 文件名
+ * @returns {string}
+ */
+function extractVersionFromFilename(filename) {
+  const match = filename.match(/(?:^|[-_.])v?(\d+(?:[._-]\d+)+(?:[-._]?(?:alpha|beta|rc)[\w.-]*)?)(?:[-_.]|$)/i)
+  return match ? match[1].replace(/_/g, '.') : ''
+}
+
+/**
  * 从相对路径中提取库元数据（兼容常见CDN目录结构）
  * 支持模式：
  * - npm/<name>@<version>/...
@@ -516,50 +639,111 @@ function walkFiles(rootDir) {
  */
 function extractMetaFromRel(rel) {
   const ext = (path.extname(rel) || '').toLowerCase()
+  const filename = path.basename(rel)
   const parts = rel.split('/').filter(Boolean)
+  const normalizedParts = [...parts]
   let name = ''
   let version = ''
 
-  const idxNpm = parts.indexOf('npm')
-  if (idxNpm >= 0 && parts[idxNpm + 1]) {
-    const seg = parts[idxNpm + 1]
-    const at = seg.indexOf('@')
-    if (at > 0) {
-      name = seg.slice(0, at)
-      version = seg.slice(at + 1)
-    }
+  while (normalizedParts[0] === 'css' || normalizedParts[0] === 'js') {
+    normalizedParts.shift()
   }
 
-  if (!name) {
-    const idxAjax = parts.indexOf('ajax')
-    const idxLibs = parts.indexOf('libs')
-    if (idxAjax >= 0 && idxLibs === idxAjax + 1 && parts[idxLibs + 1] && parts[idxLibs + 2]) {
-      name = parts[idxLibs + 1]
-      version = parts[idxLibs + 2]
-    }
-  }
-
-  if (!name) {
-    const idxGh = parts.indexOf('gh')
-    if (idxGh >= 0 && parts[idxGh + 1]) {
-      const seg = parts[idxGh + 1]
-      const at = seg.indexOf('@')
+  const idxNpm = normalizedParts.indexOf('npm')
+  if (idxNpm >= 0 && normalizedParts[idxNpm + 1]) {
+    const seg1 = normalizedParts[idxNpm + 1]
+    const seg2 = normalizedParts[idxNpm + 2] || ''
+    if (seg1.startsWith('@') && seg2) {
+      const at = seg2.lastIndexOf('@')
       if (at > 0) {
-        name = seg.slice(0, at)
-        version = seg.slice(at + 1)
+        name = `${seg1}/${seg2.slice(0, at)}`
+        version = seg2.slice(at + 1)
+      } else {
+        name = `${seg1}/${seg2}`
+        const maybeVersion = normalizedParts[idxNpm + 3] || ''
+        if (isVersionLike(maybeVersion)) version = maybeVersion
+      }
+    } else {
+      const at = seg1.lastIndexOf('@')
+      if (at > 0) {
+        name = seg1.slice(0, at)
+        version = seg1.slice(at + 1)
+      } else {
+        name = seg1
+        if (isVersionLike(seg2)) version = seg2
       }
     }
   }
 
   if (!name) {
-    for (const seg of parts) {
+    const idxAjax = normalizedParts.indexOf('ajax')
+    const idxLibs = normalizedParts.indexOf('libs')
+    if (idxAjax >= 0 && idxLibs === idxAjax + 1 && normalizedParts[idxLibs + 1] && normalizedParts[idxLibs + 2]) {
+      name = normalizedParts[idxLibs + 1]
+      version = normalizedParts[idxLibs + 2]
+    }
+  }
+
+  if (!name) {
+    const idxGh = normalizedParts.indexOf('gh')
+    if (idxGh >= 0 && normalizedParts[idxGh + 2]) {
+      const repoSeg = normalizedParts[idxGh + 2]
+      const ownerSeg = normalizedParts[idxGh + 1]
+      const seg = `${ownerSeg}/${repoSeg}`
       const at = seg.indexOf('@')
       if (at > 0) {
         name = seg.slice(0, at)
         version = seg.slice(at + 1)
+      } else {
+        name = seg
+        const maybeVersion = normalizedParts[idxGh + 3] || ''
+        if (isVersionLike(maybeVersion)) version = maybeVersion
+      }
+    }
+  }
+
+  if (!name) {
+    for (let i = 0; i < normalizedParts.length - 1; i += 1) {
+      const current = normalizedParts[i]
+      const next = normalizedParts[i + 1]
+      if (current && next && isVersionLike(next) && !current.includes('.')) {
+        name = current
+        version = next
         break
       }
     }
+  }
+
+  if (!name) {
+    const idxLibs = normalizedParts.indexOf('libs')
+    if (idxLibs >= 0 && normalizedParts[idxLibs + 1]) {
+      name = normalizedParts[idxLibs + 1]
+      version = extractVersionFromFilename(filename)
+    }
+  }
+
+  if (!name || !version) {
+    for (const seg of normalizedParts) {
+      const at = seg.indexOf('@')
+      if (at > 0) {
+        if (!name) name = seg.slice(0, at)
+        if (!version) version = seg.slice(at + 1)
+        break
+      }
+    }
+  }
+
+  if (!name && normalizedParts[0]) {
+    if (normalizedParts.length > 1 && isVersionLike(normalizedParts[1])) {
+      name = normalizedParts[0]
+      version = normalizedParts[1]
+    } else if (normalizedParts[0].includes('.')) {
+      name = normalizedParts[0]
+    }
+  }
+
+  if (!version) {
+    version = extractVersionFromFilename(filename)
   }
 
   const category = name || (ext === '.css' ? 'css' : 'js')
@@ -590,13 +774,15 @@ app.get('/api/list-cache', (req, res) => {
   const sortBy = ((req.query.sortBy || 'mtime') + '').toLowerCase()
   const order = ((req.query.order || 'desc') + '').toLowerCase() === 'asc' ? 'asc' : 'desc'
   const page = Math.max(1, Number(req.query.page || 1))
-  const pageSizeRaw = Number(req.query.pageSize || 30)
-  const pageSize = Math.max(20, Math.min(50, isNaN(pageSizeRaw) ? 30 : pageSizeRaw))
+  const pageSizeRaw = Number(req.query.pageSize || 5)
+  const pageSize = Math.max(5, Math.min(50, isNaN(pageSizeRaw) ? 5 : pageSizeRaw))
 
   const host = req.get('host')
   const proto = req.protocol
 
-  const cssFiles = walkFiles(CSS_DIR).map(f => {
+  const cssFiles = walkFiles(CSS_DIR)
+    .filter(f => shouldListAsset('css', f.rel))
+    .map(f => {
     const meta = extractMetaFromRel(f.rel)
     return {
     type: 'css',
@@ -610,7 +796,9 @@ app.get('/api/list-cache', (req, res) => {
     category: meta.category
   }
   })
-  const jsFiles = walkFiles(JS_DIR).map(f => {
+  const jsFiles = walkFiles(JS_DIR)
+    .filter(f => shouldListAsset('js', f.rel))
+    .map(f => {
     const meta = extractMetaFromRel(f.rel)
     return {
     type: 'js',

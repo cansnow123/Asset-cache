@@ -1,11 +1,21 @@
 (() => {
-  const state = { type: '', q: '', limit: 200 }
+  const state = {
+    type: '',
+    q: '',
+    loading: false,
+    page: 1,
+    pageSize: 30,
+    hasMore: true,
+    items: [],
+    total: 0,
+    lastUpdated: 0,
+    lastSeedMessage: '等待操作'
+  }
 
   const elList = document.getElementById('list')
   const elStats = document.getElementById('stats')
   const elSearch = document.getElementById('search')
   const elRefresh = document.getElementById('refresh')
-  const segBtns = Array.from(document.querySelectorAll('.seg-btn'))
   const elSortBy = document.getElementById('sortBy')
   const elOrder = document.getElementById('order')
   const elPageSize = document.getElementById('pageSize')
@@ -13,19 +23,37 @@
   const elSentinel = document.getElementById('sentinel')
   const elBackTop = document.getElementById('backTop')
   const elSearchHint = document.getElementById('searchHint')
-  const listContainer = document.querySelector('.list-container')
   const elSeedTrigger = document.getElementById('seedTrigger')
+  const elLoadMore = document.getElementById('loadMore')
+  const listContainer = document.querySelector('.list-container')
+  const segBtns = Array.from(document.querySelectorAll('.seg-btn'))
 
-  // Mobile Sidebar Logic
   const toggleSidebar = document.getElementById('toggleSidebar')
   const sidebar = document.getElementById('sidebar')
   const sidebarOverlay = document.getElementById('sidebarOverlay')
 
+  const heroTotal = document.getElementById('heroTotal')
+  const heroUpdated = document.getElementById('heroUpdated')
+  const heroView = document.getElementById('heroView')
+  const heroSeedState = document.getElementById('heroSeedState')
+  const summaryLoaded = document.getElementById('summaryLoaded')
+  const summaryFilter = document.getElementById('summaryFilter')
+  const summaryKeyword = document.getElementById('summaryKeyword')
+
+  let toastTimer = null
+  let searchTimer = null
+  let seedDebounceTimer = null
+  let seedSpinnerTimer = null
+  let seedPollTimer = null
+  let seedBusy = false
+
+  const closeSidebar = () => {
+    if (!sidebar || !sidebarOverlay) return
+    sidebar.classList.remove('open')
+    sidebarOverlay.classList.remove('open')
+  }
+
   if (toggleSidebar && sidebar && sidebarOverlay) {
-    const closeSidebar = () => {
-      sidebar.classList.remove('open')
-      sidebarOverlay.classList.remove('open')
-    }
     toggleSidebar.addEventListener('click', () => {
       sidebar.classList.toggle('open')
       sidebarOverlay.classList.toggle('open')
@@ -33,298 +61,375 @@
     sidebarOverlay.addEventListener('click', closeSidebar)
   }
 
-  /**
-   * 格式化字节大小为易读文本
-   * @param {number} n 字节数
-   * @returns {string}
-   */
-  const fmtSize = n => {
-    if (n < 1024) return `${n} B`
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`
-    return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  const formatSize = number => {
+    if (number < 1024) return `${number} B`
+    if (number < 1024 * 1024) return `${(number / 1024).toFixed(1)} KB`
+    if (number < 1024 * 1024 * 1024) return `${(number / (1024 * 1024)).toFixed(1)} MB`
+    return `${(number / (1024 * 1024 * 1024)).toFixed(1)} GB`
   }
 
-  /**
-   * 将毫秒时间戳格式化为本地时间字符串
-   * @param {number} ms 毫秒
-   * @returns {string}
-   */
-  const fmtTime = ms => new Date(ms).toLocaleString()
+  const formatTime = ms => {
+    if (!ms) return '暂无记录'
+    return new Date(ms).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
-  /**
-   * 复制文本到剪贴板
-   * @param {string} text 文本
-   * @returns {Promise<void>}
-   */
+  const formatRelativeFilter = () => {
+    if (state.type === 'css') return 'CSS 资源'
+    if (state.type === 'js') return 'JS 资源'
+    return '全部资源'
+  }
+
+  const showToast = (message, type = 'info') => {
+    let toast = document.querySelector('.toast')
+    if (!toast) {
+      toast = document.createElement('div')
+      toast.className = 'toast'
+      document.body.appendChild(toast)
+    }
+    toast.className = `toast ${type}`
+    toast.textContent = message
+    toast.classList.add('show')
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show')
+    }, 2200)
+  }
+
   const copy = async text => {
     try {
       await navigator.clipboard.writeText(text)
-      toast('已复制到剪贴板')
-    } catch (e) {
-      console.error(e)
-      toast('复制失败，请手动选择复制', true)
+      showToast('链接已复制到剪贴板', 'success')
+    } catch (error) {
+      console.error(error)
+      showToast('复制失败，请手动复制链接', 'warn')
     }
   }
 
-  let toastTimer
-  /**
-   * 显示轻提示
-   * @param {string} msg 提示内容
-   * @param {boolean} warn 是否警示样式
-   */
-  const toast = (msg, warn) => {
-    let t = document.querySelector('.toast')
-    if (!t) {
-      t = document.createElement('div')
-      t.className = 'toast'
-      document.body.appendChild(t)
-    }
-    t.textContent = msg
-    t.style.background = warn ? 'rgba(255,59,48,0.9)' : 'rgba(0,122,255,0.9)'
-    t.classList.add('show')
-    clearTimeout(toastTimer)
-    toastTimer = setTimeout(() => t.classList.remove('show'), 1800)
+  const setSeedLoading = isLoading => {
+    if (!elSeedTrigger) return
+    elSeedTrigger.classList.toggle('is-loading', isLoading)
+    elSeedTrigger.disabled = isLoading
   }
 
-  let toastBrTimer
-  /**
-   * 底部右侧Toast提示（非模态）
-   * @param {'success'|'info'|'error'} type 提示类型
-   * @param {string} msg 提示文本
-   * @param {number} duration 显示时长毫秒
-   */
-  const toastBR = (type, msg, duration = 3000) => {
-    let t = document.querySelector('.toast-br')
-    if (!t) {
-      t = document.createElement('div')
-      t.className = 'toast-br'
-      document.body.appendChild(t)
-    }
-    t.textContent = msg
-    const map = {
-      success: 'rgba(52,199,89,0.9)',   // 绿色
-      info: 'rgba(255,204,0,0.9)',      // 黄色（无变化）
-      error: 'rgba(255,59,48,0.9)'      // 红色
-    }
-    t.style.background = map[type] || map.info
-    t.classList.add('show')
-    clearTimeout(toastBrTimer)
-    toastBrTimer = setTimeout(() => t.classList.remove('show'), duration)
+  const updateSummary = () => {
+    heroTotal.textContent = String(state.total)
+    heroUpdated.textContent = formatTime(state.lastUpdated)
+    heroView.textContent = formatRelativeFilter()
+    heroSeedState.textContent = state.lastSeedMessage
+    summaryLoaded.textContent = `${state.items.length} / ${state.total || 0}`
+    summaryFilter.textContent = formatRelativeFilter()
+    summaryKeyword.textContent = state.q || '未搜索'
   }
 
-  /**
-   * 渲染缓存条目
-   * @param {Array<{type:string,url:string,size:number,mtime:number}>} items 列表
-   */
+  const setStats = (text, isError = false) => {
+    elStats.textContent = text
+    elStats.style.color = isError ? 'var(--danger)' : 'var(--text-secondary)'
+  }
+
+  const renderEmpty = (title, description) => {
+    elList.innerHTML = `
+      <div class="empty-state">
+        <h4>${title}</h4>
+        <p>${description}</p>
+      </div>
+    `
+  }
+
   const renderItems = items => {
-    elList.innerHTML = ''
     if (!items.length) {
-      elList.innerHTML = '<div class="empty">暂无内容</div>'
+      renderEmpty('暂无缓存资源', '可以先执行一次 Seed 抓取，或者调整筛选条件后再试。')
       return
     }
-    const frag = document.createDocumentFragment()
-    for (const it of items) {
-      const card = document.createElement('div')
+
+    const fragment = document.createDocumentFragment()
+    items.forEach(item => {
+      const card = document.createElement('article')
       card.className = 'item'
+
+      const fileName = item.path.split('/').filter(Boolean).pop() || '未知文件'
+      const name = item.name || fileName.replace(/\.(css|js)$/i, '')
+      const version = item.version || ''
+      const ext = item.ext || (item.type === 'css' ? '.css' : '.js')
+      const versionMarkup = version
+        ? `<span class="item-version">${version}</span>`
+        : `<span class="meta-pill">文件<strong>${fileName}</strong></span>`
+
       card.innerHTML = `
-        <div class="row">
-          <span class="badge ${it.type}">${it.type.toUpperCase()}</span>
-          <span class="url" title="${it.url}">${it.url}</span>
+        <div class="item-top">
+          <span class="item-type ${item.type}">${item.type.toUpperCase()}</span>
+          <div class="item-meta">
+            <div class="item-title">
+              <span class="item-name">${name}</span>
+              ${versionMarkup}
+              <span class="meta-pill">后缀<strong>${ext}</strong></span>
+            </div>
+            <p class="item-url">${item.url}</p>
+          </div>
         </div>
-        <div class="meta">
-          <span>${fmtSize(it.size)}</span>
-          <span>${fmtTime(it.mtime)}</span>
-        </div>
-        <div class="actions">
-          <button class="btn small outline" data-act="copy-url">复制链接</button>
-          <a class="btn small primary" href="${it.url}" target="_blank">打开</a>
+        <div class="item-bottom">
+          <div class="meta-group">
+            <span class="meta-pill">文件大小<strong>${formatSize(item.size)}</strong></span>
+            <span class="meta-pill">更新时间<strong>${formatTime(item.mtime)}</strong></span>
+            <span class="meta-pill">分类<strong>${item.category || item.type}</strong></span>
+          </div>
+          <div class="item-actions">
+            <button class="btn btn-secondary" type="button" data-action="copy">复制链接</button>
+            <a class="btn btn-ghost" href="${item.url}" target="_blank" rel="noreferrer">打开资源</a>
+          </div>
         </div>
       `
-      card.querySelector('[data-act="copy-url"]').addEventListener('click', () => copy(it.url))
-      frag.appendChild(card)
-    }
-    elList.appendChild(frag)
+
+      const copyButton = card.querySelector('[data-action="copy"]')
+      copyButton.addEventListener('click', () => copy(item.url))
+      fragment.appendChild(card)
+    })
+
+    elList.innerHTML = ''
+    elList.appendChild(fragment)
   }
 
-  /**
-   * 加载缓存列表数据并更新视图（分页 + 过滤 + 排序）
-   */
-  let loading = false
-  let page = 1
-  let pageSize = Number(elPageSize.value || 30)
-  let hasMore = true
-  let itemsBuf = []
-  
+  const updateHint = partial => {
+    if (!elSearchHint) return
+    elSearchHint.hidden = !partial
+  }
+
+  const updateLoadMore = () => {
+    if (!elLoadMore) return
+    const canLoadMore = state.hasMore && !state.loading
+    elLoadMore.hidden = !state.hasMore
+    elLoadMore.disabled = !canLoadMore
+  }
+
+  const buildListUrl = () => {
+    const url = new URL('/api/list-cache', window.location.origin)
+    if (state.type) url.searchParams.set('type', state.type)
+    if (state.q) url.searchParams.set('q', state.q)
+    if (elSortBy.value) url.searchParams.set('sortBy', elSortBy.value)
+    if (elOrder.value) url.searchParams.set('order', elOrder.value)
+
+    const hours = Number(elTimeRange.value || 0)
+    if (hours > 0) {
+      url.searchParams.set('updatedFrom', String(Date.now() - hours * 3600 * 1000))
+    }
+
+    url.searchParams.set('page', String(state.page))
+    url.searchParams.set('pageSize', String(state.pageSize))
+    return url
+  }
+
   const load = async (reset = false) => {
-    if (loading) return
-    if (reset) { page = 1; itemsBuf = []; elList.innerHTML = ''; hasMore = true }
-    if (!hasMore && !reset) return
-    
-    loading = true
-    elStats.textContent = '加载中...'
-    
-    // Manage spinner visibility
-    const elSpinner = elSentinel.querySelector('.spinner')
-    if (elSpinner) elSpinner.style.display = 'block'
-    
+    if (state.loading) return
+    if (reset) {
+      state.page = 1
+      state.hasMore = true
+      state.items = []
+      state.lastUpdated = 0
+      renderEmpty('正在加载资源...', '请稍候，资源列表正在刷新。')
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    }
+    if (!state.hasMore && !reset) return
+
+    state.loading = true
+    elSentinel.hidden = false
+    const spinner = elSentinel.querySelector('.spinner')
+    if (spinner) spinner.style.display = 'block'
+    setStats('正在同步缓存资源...')
+
     try {
-      const u = new URL('/api/list-cache', location.origin)
-      if (state.type) u.searchParams.set('type', state.type)
-      if (state.q) u.searchParams.set('q', state.q)
-      const now = Date.now()
-      const hours = Number(elTimeRange.value || 0)
-      if (hours > 0) u.searchParams.set('updatedFrom', String(now - hours * 3600 * 1000))
-      
-      u.searchParams.set('sortBy', elSortBy.value)
-      u.searchParams.set('order', elOrder.value)
-      u.searchParams.set('page', String(page))
-      u.searchParams.set('pageSize', String(pageSize))
-      
-      const r = await fetch(u)
-      const data = await r.json()
-      
-      itemsBuf = reset ? (data.items || []) : itemsBuf.concat(data.items || [])
-      hasMore = !!data.hasMore
-      elStats.textContent = `共 ${data.total} 条，已加载 ${itemsBuf.length}`
-      renderItems(itemsBuf)
-      
-      // Manage search hint visibility
-      if (elSearchHint) {
-         // Show hint if there is more data on server (hasMore) or simply if list is not empty (as requested)
-         // Requirement: "Add explicit search function hint, guiding user to search to get more content"
-         // If hasMore is true, it means we only showed a subset.
-         // If itemsBuf.length < data.total, we are showing a subset.
-         const isPartial = itemsBuf.length < data.total
-         elSearchHint.style.display = (isPartial && !loading) ? 'block' : 'none'
+      const response = await fetch(buildListUrl())
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const data = await response.json()
+
+      const incomingItems = Array.isArray(data.items) ? data.items : []
+      state.items = reset ? incomingItems : state.items.concat(incomingItems)
+      state.total = Number(data.total || 0)
+      state.hasMore = Boolean(data.hasMore)
+      state.page += 1
+
+      state.lastUpdated = state.items.reduce((latest, item) => Math.max(latest, Number(item.mtime || 0)), 0)
+
+      const partial = state.items.length < state.total
+      renderItems(state.items)
+      updateHint(partial)
+      updateLoadMore()
+      setStats(`共 ${state.total} 条资源，当前已加载 ${state.items.length} 条。`)
+      updateSummary()
+    } catch (error) {
+      console.error(error)
+      state.hasMore = false
+      setStats('资源列表加载失败，请稍后重试。', true)
+      renderEmpty('加载失败', '未能读取缓存资源列表，请检查服务状态后重试。')
+      updateHint(false)
+      updateLoadMore()
+      showToast('资源列表加载失败', 'error')
+    } finally {
+      state.loading = false
+      if (spinner) spinner.style.display = 'none'
+      elSentinel.hidden = !state.hasMore
+      updateLoadMore()
+    }
+  }
+
+  const calcNewCount = data => {
+    const results = Array.isArray(data?.results) ? data.results : []
+    return results.filter(item => !item.skipped && !item.error).length
+  }
+
+  const stopSeedPolling = () => {
+    clearTimeout(seedPollTimer)
+    seedPollTimer = null
+  }
+
+  const finalizeSeedState = async data => {
+    const newCount = Number(data?.newCount || 0)
+    if (data?.status === 'success') {
+      state.lastSeedMessage = newCount > 0 ? `新增 ${newCount} 条资源` : '无新增资源'
+      showToast(
+        newCount > 0
+          ? `Seed 抓取完成，新增 ${newCount} 条资源。`
+          : 'Seed 抓取完成，本次没有新增资源。',
+        newCount > 0 ? 'success' : 'info'
+      )
+      await load(true)
+    } else {
+      state.lastSeedMessage = '抓取失败'
+      showToast(data?.error || 'Seed 抓取失败，请稍后再试。', 'error')
+    }
+    updateSummary()
+  }
+
+  const pollSeedStatus = async () => {
+    try {
+      const response = await fetch('/api/seed-status')
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const data = await response.json()
+
+      if (data.running || data.status === 'running') {
+        state.lastSeedMessage = data.message || '正在抓取中'
+        updateSummary()
+        seedPollTimer = setTimeout(pollSeedStatus, 1200)
+        return
       }
 
-      page += 1
-    } catch (e) {
-      console.error(e)
-      elStats.textContent = '加载失败'
-      toast('加载失败', true)
-    } finally {
-      loading = false
-      if (elSpinner) elSpinner.style.display = 'none'
+      stopSeedPolling()
+      clearTimeout(seedSpinnerTimer)
+      setSeedLoading(false)
+      seedBusy = false
+      await finalizeSeedState(data)
+    } catch (error) {
+      console.error(error)
+      stopSeedPolling()
+      clearTimeout(seedSpinnerTimer)
+      setSeedLoading(false)
+      seedBusy = false
+      state.lastSeedMessage = '抓取失败'
+      updateSummary()
+      showToast('Seed 状态获取失败，请稍后重试。', 'error')
     }
   }
 
-  // 事件绑定
-  segBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      segBtns.forEach(b => b.classList.remove('is-active'))
-      btn.classList.add('is-active')
-      state.type = btn.dataset.type || ''
+  const runSeed = async () => {
+    if (seedBusy) return
+    seedBusy = true
+    stopSeedPolling()
+    state.lastSeedMessage = '正在抓取中'
+    updateSummary()
+    seedSpinnerTimer = setTimeout(() => setSeedLoading(true), 250)
+
+    try {
+      const response = await fetch('/api/seed', { method: 'POST' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const data = await response.json()
+
+      if (data.running || data.status === 'running') {
+        pollSeedStatus()
+        return
+      }
+
+      clearTimeout(seedSpinnerTimer)
+      setSeedLoading(false)
+      seedBusy = false
+      await finalizeSeedState(data)
+    } catch (error) {
+      console.error(error)
+      clearTimeout(seedSpinnerTimer)
+      setSeedLoading(false)
+      seedBusy = false
+      state.lastSeedMessage = '抓取失败'
+      updateSummary()
+      showToast('Seed 抓取失败，请稍后再试。', 'error')
+    }
+  }
+
+  segBtns.forEach(button => {
+    button.addEventListener('click', () => {
+      segBtns.forEach(item => item.classList.remove('is-active'))
+      button.classList.add('is-active')
+      state.type = button.dataset.type || ''
+      updateSummary()
       load(true)
     })
   })
-  
-  // 防抖搜索
-  let searchTimer
+
   elSearch.addEventListener('input', () => {
     clearTimeout(searchTimer)
     searchTimer = setTimeout(() => {
       state.q = elSearch.value.trim()
+      updateSummary()
       load(true)
-    }, 300)
+    }, 260)
   })
 
   elSortBy.addEventListener('change', () => load(true))
   elOrder.addEventListener('change', () => load(true))
-  elPageSize.addEventListener('change', () => { pageSize = Number(elPageSize.value || 30); load(true) })
   elTimeRange.addEventListener('change', () => load(true))
-  
-  elRefresh.addEventListener('click', async () => {
-    try {
-      toast('刷新列表中...')
-      // const r = await fetch('/api/seed')
-      // const j = await r.json()
-      // toast(`Seed 完成：${j.count} 项`)
-    } catch {
-      toast('请求失败', true)
-    }
+  elPageSize.addEventListener('change', () => {
+    state.pageSize = Number(elPageSize.value || 30)
     load(true)
   })
 
-  // Seed触发：异步调用并提示新增数量
-  let seedBusy = false
-  let seedDebounceTimer
-  let seedSpinnerTimer
-  /**
-   * 显示/隐藏Seed按钮上的加载指示器
-   * @param {boolean} show 是否显示
-   */
-  const showSeedSpinner = show => {
-    if (!elSeedTrigger) return
-    elSeedTrigger.classList.toggle('is-loading', !!show)
-  }
-  /**
-   * 计算新增条目数量
-   * @param {{results:Array<{skipped:boolean,error?:string}>}} data 接口返回数据
-   * @returns {number}
-   */
-  const calcNewCount = data => {
-    const arr = Array.isArray(data?.results) ? data.results : []
-    return arr.filter(x => !x.skipped && !x.error).length
-  }
-  /**
-   * 触发Seed抓取（带防抖、加载延时与错误处理）
-   * @returns {Promise<void>}
-   */
-  const runSeed = async () => {
-    if (seedBusy) return
-    seedBusy = true
-    if (elSeedTrigger) elSeedTrigger.disabled = true
-    // 超过500ms才显示加载指示
-    seedSpinnerTimer = setTimeout(() => showSeedSpinner(true), 500)
-    try {
-      const resp = await fetch('/api/seed', { method: 'GET' })
-      const data = await resp.json()
-      const newCount = calcNewCount(data)
-      if (newCount > 0) {
-        toastBR('success', `已执行Seed抓取，发现 ${newCount} 条新数据`)
-      } else {
-        toastBR('info', '已执行Seed抓取，无新增数据')
-      }
-      // 刷新列表
-      load(true)
-    } catch (e) {
-      toastBR('error', '请求失败，请稍后重试')
-    } finally {
-      clearTimeout(seedSpinnerTimer)
-      showSeedSpinner(false)
-      seedBusy = false
-      if (elSeedTrigger) elSeedTrigger.disabled = false
-    }
-  }
+  elRefresh.addEventListener('click', () => {
+    showToast('正在刷新资源列表...', 'info')
+    load(true)
+  })
+
   if (elSeedTrigger) {
     elSeedTrigger.addEventListener('click', () => {
       if (seedBusy) return
       clearTimeout(seedDebounceTimer)
-      seedDebounceTimer = setTimeout(runSeed, 300)
+      seedDebounceTimer = setTimeout(runSeed, 220)
     })
   }
 
-  // 虚拟滚动/无限加载
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) load(false)
-    })
-  }, { root: listContainer, rootMargin: '100px' })
-  
-  io.observe(elSentinel)
-
-  // 返回顶部按钮展示与交互
   const onScroll = () => {
-    const show = listContainer.scrollTop > 400
+    const show = window.scrollY > 360
     elBackTop.classList.toggle('show', show)
   }
-  listContainer.addEventListener('scroll', onScroll)
+
+  window.addEventListener('scroll', onScroll, { passive: true })
   elBackTop.addEventListener('click', () => {
-    listContainer.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   })
 
-  // 首次加载
+  if (elLoadMore) {
+    elLoadMore.addEventListener('click', () => {
+      load(false)
+    })
+  }
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) closeSidebar()
+  })
+
+  state.pageSize = Number(elPageSize.value || 5)
+  updateSummary()
+  updateLoadMore()
+  renderEmpty('正在准备资源...', '系统正在读取缓存索引，请稍候。')
   load(true)
 })()

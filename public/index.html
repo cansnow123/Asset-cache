@@ -4,147 +4,253 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Asset Cache</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20251214" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
-    <link rel="icon" type="image/png" sizes="64x64" href="/icon-64.png">
-    <link rel="icon" type="image/png" sizes="128x128" href="/icon-128.png">
-    <link rel="icon" type="image/png" sizes="256x256" href="/icon-256.png">
-    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/styles.css?v=20260613b" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/icon-64.png" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/icon-128.png" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/icon-256.png" />
+    <meta name="robots" content="noindex, nofollow" />
   </head>
   <body>
-    <div class="app-layout">
-      <!-- Header -->
-      <header class="app-header glass">
-        <div class="header-left">
-          <div class="logo-icon"><img src="/icon-64.png" alt="网站LOGO" width="32" height="32"></div>
-          <div class="header-text">
-            <h1>Asset Cache</h1>
-            <span class="status-badge online">Online</span>
-          </div>
-        </div>
-        <div class="header-right">
-          <button id="toggleSidebar" class="icon-btn mobile-only" aria-label="Menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
+    <div class="app-shell">
+      <div class="app-backdrop" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="topbar-brand">
+          <button id="toggleSidebar" class="icon-btn mobile-only" type="button" aria-label="打开菜单">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16"></path>
             </svg>
           </button>
+          <div class="brand-mark">
+            <img src="/icon-64.png" alt="Asset Cache 标志" width="28" height="28" />
+          </div>
+          <div class="brand-copy">
+            <p class="eyebrow">Photo8 Tools</p>
+            <h1>Asset Cache</h1>
+          </div>
+        </div>
+
+        <div class="topbar-status">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>服务在线</span>
+          </div>
+          <div class="status-meta">
+            <span>资源总数</span>
+            <strong id="heroTotal">--</strong>
+          </div>
+          <div class="status-meta">
+            <span>最近更新</span>
+            <strong id="heroUpdated">等待加载</strong>
+          </div>
         </div>
       </header>
 
-      <main class="app-main">
-        <!-- Sidebar (External Links & Info) -->
-        <aside id="sidebar" class="app-sidebar">
-          <div class="sidebar-content">
-            <section class="sidebar-section">
-              <h2>控制台</h2>
-              <div class="action-group">
-                <button id="seedTrigger" class="btn primary full-width" type="button">
-                  <span class="icon">⚡</span> 触发 Seed 抓取
-                  <span class="btn-spinner" aria-hidden="true"></span>
-                </button>
+      <main class="workspace">
+        <aside id="sidebar" class="control-panel">
+          <div class="panel-scroll">
+            <section class="panel-card panel-hero">
+              <div class="panel-hero-copy">
+                <p class="eyebrow">控制中心</p>
+                <h2>集中管理本地缓存资源</h2>
+                <p>
+                  让前端静态资源缓存保持稳定、可控、易维护。
+                </p>
+              </div>
+              <button id="seedTrigger" class="btn btn-primary" type="button">
+                <span>触发 Seed 抓取</span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+            </section>
+
+            <section class="panel-card">
+              <div class="section-heading">
+                <p class="eyebrow">运行摘要</p>
+                <h3>当前服务状态</h3>
+              </div>
+              <div class="summary-grid">
+                <article class="summary-item">
+                  <span class="summary-label">缓存类型</span>
+                  <strong id="summaryTypes">CSS / JS</strong>
+                </article>
+                <article class="summary-item">
+                  <span class="summary-label">已加载条目</span>
+                  <strong id="summaryLoaded">--</strong>
+                </article>
+                <article class="summary-item">
+                  <span class="summary-label">筛选状态</span>
+                  <strong id="summaryFilter">全部资源</strong>
+                </article>
+                <article class="summary-item">
+                  <span class="summary-label">检索关键词</span>
+                  <strong id="summaryKeyword">未搜索</strong>
+                </article>
               </div>
             </section>
 
-            <section class="sidebar-section">
-              <h2>公共资源加速</h2>
-              <p class="desc">建议优先使用成熟的公共 CDN 服务。</p>
-              <nav class="nav-links">
-                <a href="https://cdnjs.com/" target="_blank" class="nav-item">
-                  <span class="nav-title">CDNJS</span>
-                  <span class="nav-url">cdnjs.com</span>
+            <section class="panel-card">
+              <div class="section-heading">
+                <p class="eyebrow">公共 CDN</p>
+                <h3>推荐优先使用成熟公共资源</h3>
+              </div>
+              <nav class="link-list" aria-label="公共 CDN 推荐">
+                <a href="https://cdnjs.com/" target="_blank" rel="noreferrer" class="link-item">
+                  <span class="link-title">CDNJS</span>
+                  <span class="link-subtitle">cdnjs.com</span>
                 </a>
-                <a href="https://www.jsdelivr.com/" target="_blank" class="nav-item">
-                  <span class="nav-title">jsDelivr</span>
-                  <span class="nav-url">jsdelivr.com</span>
+                <a href="https://www.jsdelivr.com/" target="_blank" rel="noreferrer" class="link-item">
+                  <span class="link-title">jsDelivr</span>
+                  <span class="link-subtitle">jsdelivr.com</span>
                 </a>
-                <a href="https://www.staticfile.org/" target="_blank" class="nav-item">
-                  <span class="nav-title">七牛云 CDN</span>
-                  <span class="nav-url">staticfile.org</span>
+                <a href="https://www.staticfile.org/" target="_blank" rel="noreferrer" class="link-item">
+                  <span class="link-title">七牛云 Staticfile</span>
+                  <span class="link-subtitle">staticfile.org</span>
                 </a>
-                <a href="http://jscdn.upai.com/" target="_blank" class="nav-item">
-                  <span class="nav-title">又拍云 CDN</span>
-                  <span class="nav-url">jscdn.upai.com</span>
+                <a href="http://jscdn.upai.com/" target="_blank" rel="noreferrer" class="link-item">
+                  <span class="link-title">又拍云 CDN</span>
+                  <span class="link-subtitle">jscdn.upai.com</span>
                 </a>
               </nav>
             </section>
-            
-            <footer class="sidebar-footer">
-               <p>© 2025 Asset Cache & © Photo8 Tools Team</p>
-               <p><a href="https://ckk.photo8.site/Photo8/Asset-cache" target="_blank">自己部署一个</a></p>
+
+            <section class="panel-card">
+              <div class="section-heading">
+                <p class="eyebrow">部署入口</p>
+                <h3>自托管与项目文档</h3>
+              </div>
+              <div class="deployment-copy">
+                <p>如果你需要部署自己的缓存服务，可以直接查看项目仓库与说明文档。</p>
+                <a class="btn btn-secondary full-width" href="https://ckk.photo8.site/Photo8/Asset-cache" target="_blank" rel="noreferrer">
+                  查看项目仓库
+                </a>
+              </div>
+            </section>
+
+            <footer class="panel-footer">
+              <p>Copyright © 2026 Asset Cache</p>
+              <p>Designed for internal asset delivery workflows.</p>
             </footer>
           </div>
         </aside>
 
-        <!-- Main Content (Cache Manager) -->
-        <section class="app-content">
-          <!-- Toolbar -->
-          <div class="toolbar glass">
-            <div class="toolbar-row">
-              <div class="seg-control">
-                <button class="seg-btn is-active" data-type="">全部</button>
-                <button class="seg-btn" data-type="css">CSS</button>
-                <button class="seg-btn" data-type="js">JS</button>
-              </div>
-              <div class="actions-right">
-                <button id="refresh" class="icon-btn" title="刷新">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M23 4v6h-6"></path>
-                    <path d="M1 20v-6h6"></path>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <div class="toolbar-row secondary">
-              <div class="search-wrapper">
-                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input id="search" type="text" placeholder="输入关键词搜索更多资源..." />
-              </div>
-              <div class="filters">
-                <select id="timeRange" class="select-clean">
-                  <option value="">全部时间</option>
-                  <option value="24">24小时内</option>
-                  <option value="168">7天内</option>
-                </select>
-                <select id="sortBy" class="select-clean">
-                  <option value="mtime">按时间</option>
-                  <option value="size">按大小</option>
-                  <option value="name">按名称</option>
-                </select>
-                <!-- Hidden inputs to maintain compatibility with app.js if needed, or mapped via CSS -->
-                <select id="order" class="select-clean" style="display:none"><option value="desc">Desc</option><option value="asc">Asc</option></select>
-                <select id="pageSize" class="select-clean" style="display:none"><option value="6">6</option></select>
-              </div>
-            </div>
-            <div id="stats" class="stats-bar">加载中...</div>
+        <section class="content-stage">
+          <div class="hero-strip">
+            <article class="hero-card hero-card-main">
+              <p class="eyebrow">资源工作台</p>
+              <h2>更快定位、更稳抓取、更顺手复制</h2>
+              <p>
+                通过统一的筛选、搜索与状态反馈，集中处理缓存资源清单，减少查找成本并提升运维效率。
+              </p>
+            </article>
+            <article class="hero-card">
+              <span class="mini-label">当前视图</span>
+              <strong id="heroView">全部资源</strong>
+              <span class="mini-help">支持按类型、时间和排序方式快速切换。</span>
+            </article>
+            <article class="hero-card">
+              <span class="mini-label">抓取反馈</span>
+              <strong id="heroSeedState">等待操作</strong>
+              <span class="mini-help">Seed 执行结果会同步展示在这里。</span>
+            </article>
           </div>
 
-          <!-- Scrollable List -->
-          <div class="list-container">
-            <div id="list" class="resource-list"></div>
-            <div id="searchHint" class="search-hint" style="display:none">
-              仅显示部分内容，请使用搜索功能查找更多资源
+          <section class="workbench">
+            <div class="toolbar-shell">
+              <div class="toolbar-top">
+                <div class="seg-control" role="tablist" aria-label="资源类型筛选">
+                  <button class="seg-btn is-active" type="button" data-type="">全部</button>
+                  <button class="seg-btn" type="button" data-type="css">CSS</button>
+                  <button class="seg-btn" type="button" data-type="js">JS</button>
+                </div>
+
+                <div class="toolbar-actions">
+                  <div class="action-chip">
+                    <span class="chip-label">排序</span>
+                    <select id="sortBy" class="select-clean" aria-label="排序方式">
+                      <option value="mtime">按更新时间</option>
+                      <option value="size">按文件大小</option>
+                      <option value="name">按名称</option>
+                    </select>
+                  </div>
+                  <button id="refresh" class="icon-btn subtle" type="button" title="刷新资源列表" aria-label="刷新资源列表">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M20 11a8 8 0 1 0 2.34 5.66M20 11V5m0 6h-6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="toolbar-bottom">
+                <label class="search-field" for="search">
+                  <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                  </svg>
+                  <input id="search" type="text" placeholder="搜索 URL、库名或版本信息" autocomplete="off" />
+                </label>
+
+                <div class="filter-row">
+                  <select id="timeRange" class="select-clean" aria-label="更新时间范围">
+                    <option value="">全部时间</option>
+                    <option value="24">最近 24 小时</option>
+                    <option value="168">最近 7 天</option>
+                  </select>
+                  <select id="order" class="select-clean" aria-label="排序方向">
+                    <option value="desc">最新优先</option>
+                    <option value="asc">最旧优先</option>
+                  </select>
+                  <select id="pageSize" class="select-clean" aria-label="每页数量">
+                    <option value="5" selected>每页 5 条</option>
+                    <option value="10">每页 10 条</option>
+                    <option value="20">每页 20 条</option>
+                    <option value="30">每页 30 条</option>
+                    <option value="40">每页 40 条</option>
+                    <option value="50">每页 50 条</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="toolbar-status">
+                <div id="stats" class="stats-line">正在准备资源数据...</div>
+                <div id="searchHint" class="inline-hint" hidden>
+                  默认仅展示最新 5 条缓存资源，可以继续点击加载更多，也可以使用搜索进一步缩小范围。
+                </div>
+              </div>
             </div>
-            <div id="sentinel" class="loading-sentinel">
-              <div class="spinner"></div>
+
+            <div class="list-shell">
+              <div class="list-head">
+                <div>
+                  <p class="eyebrow">缓存资源</p>
+                  <h3>可直接复制并访问的本地缓存列表</h3>
+                </div>
+              </div>
+
+              <div class="list-container">
+                <div id="list" class="resource-list"></div>
+                <div class="list-more">
+                  <button id="loadMore" class="btn btn-secondary" type="button">加载更多资源</button>
+                </div>
+                <div id="sentinel" class="loading-sentinel">
+                  <div class="spinner" aria-hidden="true"></div>
+                  <span class="sentinel-text">正在同步资源状态...</span>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <!-- Back Top (Might not be needed if scrolling is fast/internal, but good to have) -->
-          <button id="backTop" class="fab-btn">↑</button>
+          </section>
+
+          <button id="backTop" class="fab-btn" type="button" aria-label="返回顶部">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 6-6 6m6-6 6 6M12 6v12"></path>
+            </svg>
+          </button>
         </section>
       </main>
-      
-      <!-- Mobile Sidebar Overlay -->
+
       <div id="sidebarOverlay" class="sidebar-overlay"></div>
     </div>
 
-    <script src="/app.js?v=20251214"></script>
+    <script src="/app.js?v=20260613b"></script>
   </body>
 </html>
